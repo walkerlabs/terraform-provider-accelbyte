@@ -1,3 +1,3 @@
-provider "scaffolding" {
+provider "accelbyte" {
   # example configuration here
 }
