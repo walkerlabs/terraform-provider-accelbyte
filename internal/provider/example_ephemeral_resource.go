@@ -30,7 +30,9 @@ type ExampleEphemeralResourceModel struct {
 }
 
 func (r *ExampleEphemeralResource) Metadata(_ context.Context, req ephemeral.MetadataRequest, resp *ephemeral.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_example"
+	// We have renamed the provider, but we want to keep the names of these example resources
+	//resp.TypeName = req.ProviderTypeName + "_example"
+	resp.TypeName = "scaffolding_example"
 }
 
 func (r *ExampleEphemeralResource) Schema(ctx context.Context, _ ephemeral.SchemaRequest, resp *ephemeral.SchemaResponse) {

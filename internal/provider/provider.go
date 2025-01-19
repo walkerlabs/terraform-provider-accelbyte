@@ -9,6 +9,7 @@ import (
 
 	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/factory"
 	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/service/iam"
+	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/service/match2"
 	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/utils/auth"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/ephemeral"
@@ -40,6 +41,10 @@ type AccelByteProviderModel struct {
 	IamClientSecret types.String `tfsdk:"iam_client_secret"`
 	AdminUsername   types.String `tfsdk:"admin_username"`
 	AdminPassword   types.String `tfsdk:"admin_password"`
+}
+
+type AccelByteProviderClients struct {
+	Match2PoolsService *match2.MatchPoolsService
 }
 
 func (p *AccelByteProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -261,36 +266,43 @@ func (p *AccelByteProvider) Configure(ctx context.Context, req provider.Configur
 		return
 	}
 
-	/*
-		// Test SDK calls
+	// Set up service entry points, that will be used by resources & data sources
 
-		userProfileService := &basic.UserProfileService{
-			Client:          factory.NewBasicClient(&configRepository),
+	match2PoolsService := &match2.MatchPoolsService{
+		Client:          factory.NewMatch2Client(&configRepository),
+		TokenRepository: tokenRepository,
+	}
+	/*
+		match2PoolsService := &match2.MatchPoolsService{
+			Client:          factory.NewMatch2Client(&configRepository),
 			TokenRepository: tokenRepository,
 		}
-		input := &user_profile.GetUserProfileInfoParams{
-			Namespace: "alaraprime",
-			UserID:    "9765327f993e4e92b319bfa49f2ec956",
-		}
 
-		// Make a call to getMyProfileInfo endpoint through the wrapper
-		userInfo, err := userProfileService.GetUserProfileInfoShort(input)
+		input := &match_pools.MatchPoolListParams{
+			Namespace: "alaraprime",
+		}
+		result, err := match2PoolsService.MatchPoolListShort(input)
+
 		if err != nil {
 			resp.Diagnostics.AddError(
-				"Unable to get profile info",
-				"Unable to get profile info:"+err.Error(),
+				"Unable to get match pools",
+				"Unable to get match pools:"+err.Error(),
 			)
 			return
 		}
 
 		resp.Diagnostics.AddError(
-			"got profile info!",
-			"got profile info: "+userInfo.PublicID,
+			"got match pools!",
+			"got match pools: "+strconv.Itoa(len(result.Data)),
 		)
 	*/
 
-	// resp.DataSourceData = client
-	// resp.ResourceData = client
+	clients := &AccelByteProviderClients{
+		Match2PoolsService: match2PoolsService,
+	}
+
+	resp.DataSourceData = clients
+	resp.ResourceData = clients
 }
 
 func (p *AccelByteProvider) Resources(ctx context.Context) []func() resource.Resource {
@@ -307,7 +319,7 @@ func (p *AccelByteProvider) EphemeralResources(ctx context.Context) []func() eph
 
 func (p *AccelByteProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
-		NewExampleDataSource,
+		NewAccelByteMatchPoolDataSource,
 	}
 }
 

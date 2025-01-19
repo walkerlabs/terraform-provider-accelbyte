@@ -49,6 +49,14 @@ func TestAccExampleResource(t *testing.T) {
 
 func testAccExampleResourceConfig(configurableAttribute string) string {
 	return fmt.Sprintf(`
+provider "scaffolding" {
+  base_url = "https://localhost"
+  iam_client_id = "abcd"
+  iam_client_secret = "efgh"
+  admin_username = "user@example.com"
+  admin_password = "pass"
+}
+
 resource "scaffolding_example" "test" {
   configurable_attribute = %[1]q
 }

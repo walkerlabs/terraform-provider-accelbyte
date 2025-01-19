@@ -5,7 +5,6 @@ package provider
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -39,7 +38,9 @@ type ExampleResourceModel struct {
 }
 
 func (r *ExampleResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_example"
+	// We have renamed the provider, but we want to keep the names of these example resources
+	//resp.TypeName = req.ProviderTypeName + "_example"
+	resp.TypeName = "scaffolding_example"
 }
 
 func (r *ExampleResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -75,18 +76,20 @@ func (r *ExampleResource) Configure(ctx context.Context, req resource.ConfigureR
 		return
 	}
 
-	client, ok := req.ProviderData.(*http.Client)
+	// Commented out this since the example resource is no longer compatible with the current provider
 
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
-		)
+	// client, ok := req.ProviderData.(*http.Client)
 
-		return
-	}
+	// if !ok {
+	// 	resp.Diagnostics.AddError(
+	// 		"Unexpected Resource Configure Type",
+	// 		fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+	// 	)
 
-	r.client = client
+	// 	return
+	// }
+
+	// r.client = client
 }
 
 func (r *ExampleResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
