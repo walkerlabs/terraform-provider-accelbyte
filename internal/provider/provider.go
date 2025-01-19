@@ -307,7 +307,7 @@ func (p *AccelByteProvider) Configure(ctx context.Context, req provider.Configur
 
 func (p *AccelByteProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		NewExampleResource,
+		NewAccelByteMatchPoolResource,
 	}
 }
 

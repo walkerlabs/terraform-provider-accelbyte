@@ -174,12 +174,12 @@ func (d *AccelByteMatchPoolDataSource) Read(ctx context.Context, req datasource.
 	data.Id = types.StringValue(computeMatchPoolId(data.Namespace.ValueString(), data.Name.ValueString()))
 
 	input := match_pools.MatchPoolDetailsParams{
-		Namespace: "alaraprime",
+		Namespace: data.Namespace.ValueString(),
 		Pool:      data.Name.ValueString(),
 	}
 	pool, err := d.client.MatchPoolDetailsShort(&input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error when accessing AccelByte API", fmt.Sprintf("Unable to read info on AccelByte match pool with name '%s', got error: %s", input.Pool, err))
+		resp.Diagnostics.AddError("Error when accessing AccelByte API", fmt.Sprintf("Unable to read info on AccelByte match pool from namespace '%s' name '%s', got error: %s", input.Namespace, input.Pool, err))
 		return
 	}
 
