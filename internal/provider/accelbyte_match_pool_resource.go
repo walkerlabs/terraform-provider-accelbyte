@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	"github.com/AccelByte/accelbyte-go-sdk/match2-sdk/pkg/match2client/match_pools"
-	"github.com/AccelByte/accelbyte-go-sdk/match2-sdk/pkg/match2clientmodels"
 	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/service/match2"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -33,30 +32,6 @@ func NewAccelByteMatchPoolResource() resource.Resource {
 // AccelByteMatchPoolResource defines the resource implementation.
 type AccelByteMatchPoolResource struct {
 	client *match2.MatchPoolsService
-}
-
-// AccelByteMatchPoolResourceModel describes the resource data model.
-type AccelByteMatchPoolResourceModel struct {
-	// Must be set by user; the ID is derived from these
-	Namespace types.String `tfsdk:"namespace"`
-	Name      types.String `tfsdk:"name"`
-
-	// Computed during Create() operation
-	Id types.String `tfsdk:"id"`
-
-	// Can be set or left as default by user
-
-	AutoAcceptBackfillProposal        types.Bool   `tfsdk:"auto_accept_backfill_proposal"`
-	BackfillProposalExpirationSeconds types.Int32  `tfsdk:"backfill_proposal_expiration_seconds"`
-	BackfillTicketExpirationSeconds   types.Int32  `tfsdk:"backfill_ticket_expiration_seconds"`
-	BestLatencyCalculationMethod      types.String `tfsdk:"best_latency_calculation_method"` // optional in AccelByte SDK
-	CrossplayDisabled                 types.Bool   `tfsdk:"crossplay_disabled"`              // optional in AccelByte SDK
-	MatchFunction                     types.String `tfsdk:"match_function"`
-	// MatchFunctionOverride             types.Object `tfsdk:"match_function_override"` // This is a AccelByteMatchPoolMatchFunctionOverrideDataSourceModel
-	PlatformGroupEnabled    types.Bool   `tfsdk:"platform_group_enabled"` // optional in AccelByte SDK
-	RuleSet                 types.String `tfsdk:"rule_set"`
-	SessionTemplate         types.String `tfsdk:"session_template"`
-	TicketExpirationSeconds types.Int32  `tfsdk:"ticket_expiration_seconds"`
 }
 
 func (r *AccelByteMatchPoolResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -182,7 +157,7 @@ func (r *AccelByteMatchPoolResource) Configure(ctx context.Context, req resource
 }
 
 func (r *AccelByteMatchPoolResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data AccelByteMatchPoolResourceModel
+	var data AccelByteMatchPoolModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -195,20 +170,7 @@ func (r *AccelByteMatchPoolResource) Create(ctx context.Context, req resource.Cr
 
 	input := &match_pools.CreateMatchPoolParams{
 		Namespace: data.Namespace.ValueString(),
-		Body: &match2clientmodels.APIMatchPool{
-			AutoAcceptBackfillProposal:        data.AutoAcceptBackfillProposal.ValueBoolPointer(),
-			BackfillProposalExpirationSeconds: data.BackfillProposalExpirationSeconds.ValueInt32Pointer(),
-			BackfillTicketExpirationSeconds:   data.BackfillTicketExpirationSeconds.ValueInt32Pointer(),
-			BestLatencyCalculationMethod:      data.BestLatencyCalculationMethod.ValueString(),
-			CrossplayDisabled:                 data.CrossplayDisabled.ValueBool(),
-			MatchFunction:                     data.MatchFunction.ValueStringPointer(),
-			//MatchFunctionOverride: data.MatchFunctionOverride.ValueInt32Pointer(),
-			Name:                    data.Name.ValueStringPointer(),
-			PlatformGroupEnabled:    data.PlatformGroupEnabled.ValueBool(),
-			RuleSet:                 data.RuleSet.ValueStringPointer(),
-			SessionTemplate:         data.SessionTemplate.ValueStringPointer(),
-			TicketExpirationSeconds: data.TicketExpirationSeconds.ValueInt32Pointer(),
-		},
+		Body:      toApiMatchPool(data),
 	}
 
 	err := r.client.CreateMatchPoolShort(input)
@@ -229,7 +191,7 @@ func (r *AccelByteMatchPoolResource) Create(ctx context.Context, req resource.Cr
 }
 
 func (r *AccelByteMatchPoolResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data AccelByteMatchPoolResourceModel
+	var data AccelByteMatchPoolModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -248,23 +210,7 @@ func (r *AccelByteMatchPoolResource) Read(ctx context.Context, req resource.Read
 		return
 	}
 
-	data.AutoAcceptBackfillProposal = types.BoolValue(*pool.AutoAcceptBackfillProposal)
-	data.BackfillProposalExpirationSeconds = types.Int32Value(*pool.BackfillProposalExpirationSeconds)
-	data.BackfillTicketExpirationSeconds = types.Int32Value(*pool.BackfillTicketExpirationSeconds)
-	data.BestLatencyCalculationMethod = types.StringValue(pool.BestLatencyCalculationMethod)
-	data.CrossplayDisabled = types.BoolValue(pool.CrossplayDisabled)
-	data.MatchFunction = types.StringValue(*pool.MatchFunction)
-	// data.MatchFunctionOverride = types.ObjectValue(AccelByteMatchPoolMatchFunctionOverrideDataSourceModel{
-	// 	BackfillMatches: pool.MatchFunctionOverride.BackfillMatches,
-	// 	Enrichment:      []types.String{pool.MatchFunctionOverride.Enrichment},
-	// 	MakeMatches:     pool.MatchFunctionOverride.MakeMatches,
-	// 	StatCodes:       []types.String{pool.MatchFunctionOverride.StatCodes},
-	// 	Validation:      []types.String{pool.MatchFunctionOverride.Validation},
-	// })
-	data.PlatformGroupEnabled = types.BoolValue(pool.PlatformGroupEnabled)
-	data.RuleSet = types.StringValue(*pool.RuleSet)
-	data.SessionTemplate = types.StringValue(*pool.SessionTemplate)
-	data.TicketExpirationSeconds = types.Int32Value(*pool.TicketExpirationSeconds)
+	updateFromApiMatchPool(data, pool)
 
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log
@@ -278,7 +224,7 @@ func (r *AccelByteMatchPoolResource) Read(ctx context.Context, req resource.Read
 }
 
 func (r *AccelByteMatchPoolResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data AccelByteMatchPoolResourceModel
+	var data AccelByteMatchPoolModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -290,35 +236,23 @@ func (r *AccelByteMatchPoolResource) Update(ctx context.Context, req resource.Up
 	input := &match_pools.UpdateMatchPoolParams{
 		Namespace: data.Namespace.ValueString(),
 		Pool:      data.Name.ValueString(),
-		Body: &match2clientmodels.APIMatchPoolConfig{
-			AutoAcceptBackfillProposal:        data.AutoAcceptBackfillProposal.ValueBoolPointer(),
-			BackfillProposalExpirationSeconds: data.BackfillProposalExpirationSeconds.ValueInt32Pointer(),
-			BackfillTicketExpirationSeconds:   data.BackfillTicketExpirationSeconds.ValueInt32Pointer(),
-			BestLatencyCalculationMethod:      data.BestLatencyCalculationMethod.ValueString(),
-			CrossplayDisabled:                 data.CrossplayDisabled.ValueBool(),
-			MatchFunction:                     data.MatchFunction.ValueStringPointer(),
-			//MatchFunctionOverride: data.MatchFunctionOverride.ValueInt32Pointer(),
-			PlatformGroupEnabled:    data.PlatformGroupEnabled.ValueBool(),
-			RuleSet:                 data.RuleSet.ValueStringPointer(),
-			SessionTemplate:         data.SessionTemplate.ValueStringPointer(),
-			TicketExpirationSeconds: data.TicketExpirationSeconds.ValueInt32Pointer(),
-		},
+		Body:      toApiMatchPoolConfig(data),
 	}
 
-	_, err := r.client.UpdateMatchPoolShort(input)
+	apiMatchPool, err := r.client.UpdateMatchPoolShort(input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error when accessing AccelByte API", fmt.Sprintf("Unable to update new AccelByte match pool in namespace '%s', name '%s', got error: %s", input.Namespace, input.Pool, err))
 		return
 	}
 
-	// TODO: perhaps we should catch the response and update our state accordingly?
+	updateFromApiMatchPool(data, apiMatchPool)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
 func (r *AccelByteMatchPoolResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data AccelByteMatchPoolResourceModel
+	var data AccelByteMatchPoolModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
