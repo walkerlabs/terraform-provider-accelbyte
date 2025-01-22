@@ -214,7 +214,7 @@ func (r *AccelByteMatchPoolResource) Read(ctx context.Context, req resource.Read
 
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log
-	tflog.Trace(ctx, "Read AccelByteMatchPoolDataSource from AccelByte API", map[string]interface{}{
+	tflog.Trace(ctx, "Read AccelByteMatchPoolResource from AccelByte API", map[string]interface{}{
 		"namespace": data.Namespace,
 		"name":      data.Name.ValueString(),
 	})
