@@ -151,7 +151,7 @@ func (d *AccelByteMatchPoolDataSource) Read(ctx context.Context, req datasource.
 		return
 	}
 
-	updateFromApiMatchPool(data, pool)
+	updateFromApiMatchPool(&data, pool)
 
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log

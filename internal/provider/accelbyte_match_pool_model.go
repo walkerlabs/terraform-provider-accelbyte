@@ -40,7 +40,7 @@ type AccelByteMatchPoolModel struct {
 // 	Validation      []types.String `tfsdk:"validation"`       // optional
 // }
 
-func updateFromApiMatchPool(data AccelByteMatchPoolModel, pool *match2clientmodels.APIMatchPool) {
+func updateFromApiMatchPool(data *AccelByteMatchPoolModel, pool *match2clientmodels.APIMatchPool) {
 	data.AutoAcceptBackfillProposal = types.BoolValue(*pool.AutoAcceptBackfillProposal)
 	data.BackfillProposalExpirationSeconds = types.Int32Value(*pool.BackfillProposalExpirationSeconds)
 	data.BackfillTicketExpirationSeconds = types.Int32Value(*pool.BackfillTicketExpirationSeconds)

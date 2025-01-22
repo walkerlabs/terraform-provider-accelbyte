@@ -210,7 +210,7 @@ func (r *AccelByteMatchPoolResource) Read(ctx context.Context, req resource.Read
 		return
 	}
 
-	updateFromApiMatchPool(data, pool)
+	updateFromApiMatchPool(&data, pool)
 
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log
@@ -245,7 +245,7 @@ func (r *AccelByteMatchPoolResource) Update(ctx context.Context, req resource.Up
 		return
 	}
 
-	updateFromApiMatchPool(data, apiMatchPool)
+	updateFromApiMatchPool(&data, apiMatchPool)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
