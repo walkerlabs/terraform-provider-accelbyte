@@ -58,6 +58,15 @@ func (d *AccelByteMatchPoolDataSource) Schema(ctx context.Context, req datasourc
 
 			// Fetched from AccelByte API during Read() opearation
 
+			"rule_set": schema.StringAttribute{
+				MarkdownDescription: "",
+				Computed:            true,
+			},
+			"session_template": schema.StringAttribute{
+				MarkdownDescription: "",
+				Computed:            true,
+			},
+
 			"auto_accept_backfill_proposal": schema.BoolAttribute{
 				MarkdownDescription: "",
 				Computed:            true,
@@ -92,14 +101,6 @@ func (d *AccelByteMatchPoolDataSource) Schema(ctx context.Context, req datasourc
 				MarkdownDescription: "",
 				Computed:            true,
 				Optional:            true,
-			},
-			"rule_set": schema.StringAttribute{
-				MarkdownDescription: "",
-				Computed:            true,
-			},
-			"session_template": schema.StringAttribute{
-				MarkdownDescription: "",
-				Computed:            true,
 			},
 			"ticket_expiration_seconds": schema.Int32Attribute{
 				MarkdownDescription: "",

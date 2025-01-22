@@ -12,10 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int32default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -72,41 +69,48 @@ func (r *AccelByteMatchPoolResource) Schema(ctx context.Context, req resource.Sc
 				},
 			},
 
-			// Fetched from AccelByte API during Read() opearation
+			// Must be set by user during resource creation
+
+			"rule_set": schema.StringAttribute{
+				MarkdownDescription: "",
+				Required:            true,
+			},
+			"session_template": schema.StringAttribute{
+				MarkdownDescription: "",
+				Required:            true,
+			},
+
+			// Can be set by user during resource creation; will otherwise get defaults from API
 
 			"auto_accept_backfill_proposal": schema.BoolAttribute{
 				MarkdownDescription: "",
 				Optional:            true,
 				Computed:            true,
-				Default:             booldefault.StaticBool(false),
 			},
 			"backfill_proposal_expiration_seconds": schema.Int32Attribute{
 				MarkdownDescription: "",
 				Optional:            true,
 				Computed:            true,
-				Default:             int32default.StaticInt32(300),
 			},
 			"backfill_ticket_expiration_seconds": schema.Int32Attribute{
 				MarkdownDescription: "",
 				Optional:            true,
 				Computed:            true,
-				Default:             int32default.StaticInt32(30),
 			},
 			"best_latency_calculation_method": schema.StringAttribute{
 				MarkdownDescription: "",
 				Optional:            true,
+				Computed:            true,
 			},
 			"crossplay_disabled": schema.BoolAttribute{
 				MarkdownDescription: "",
 				Optional:            true,
 				Computed:            true,
-				Default:             booldefault.StaticBool(true),
 			},
 			"match_function": schema.StringAttribute{
 				MarkdownDescription: "",
 				Optional:            true,
 				Computed:            true,
-				Default:             stringdefault.StaticString("default"),
 			},
 			// "match_function_override": schema.StringAttribute{
 			// 	MarkdownDescription: "",
@@ -116,21 +120,11 @@ func (r *AccelByteMatchPoolResource) Schema(ctx context.Context, req resource.Sc
 				MarkdownDescription: "",
 				Optional:            true,
 				Computed:            true,
-				Default:             booldefault.StaticBool(false),
-			},
-			"rule_set": schema.StringAttribute{
-				MarkdownDescription: "",
-				Required:            true,
-			},
-			"session_template": schema.StringAttribute{
-				MarkdownDescription: "",
-				Required:            true,
 			},
 			"ticket_expiration_seconds": schema.Int32Attribute{
 				MarkdownDescription: "",
 				Optional:            true,
 				Computed:            true,
-				Default:             int32default.StaticInt32(300),
 			},
 		},
 	}
@@ -168,16 +162,34 @@ func (r *AccelByteMatchPoolResource) Create(ctx context.Context, req resource.Cr
 
 	data.Id = types.StringValue(computeMatchPoolId(data.Namespace.ValueString(), data.Name.ValueString()))
 
-	input := &match_pools.CreateMatchPoolParams{
+	// Create pool
+
+	createInput := &match_pools.CreateMatchPoolParams{
 		Namespace: data.Namespace.ValueString(),
 		Body:      toApiMatchPool(data),
 	}
 
-	err := r.client.CreateMatchPoolShort(input)
+	err := r.client.CreateMatchPoolShort(createInput)
 	if err != nil {
-		resp.Diagnostics.AddError("Error when accessing AccelByte API", fmt.Sprintf("Unable to create new AccelByte match pool in namespace '%s', name '%s', got error: %s", input.Namespace, input.Body.Name, err))
+		resp.Diagnostics.AddError("Error when accessing AccelByte API", fmt.Sprintf("Unable to create new AccelByte match pool in namespace '%s', name '%s', got error: %s", createInput.Namespace, createInput.Body.Name, err))
 		return
 	}
+
+	// Fetch pool immediately after creating it, so we can get the values for un-set defaults
+
+	readInput := match_pools.MatchPoolDetailsParams{
+		Namespace: data.Namespace.ValueString(),
+		Pool:      data.Name.ValueString(),
+	}
+	pool, err := r.client.MatchPoolDetailsShort(&readInput)
+	if err != nil {
+		resp.Diagnostics.AddError("Error when accessing AccelByte API", fmt.Sprintf("Unable to read info on AccelByte match pool from namespace '%s' name '%s', got error: %s", readInput.Namespace, readInput.Pool, err))
+		return
+	}
+
+	// Reflect new pool from API into our model
+
+	updateFromApiMatchPool(&data, pool)
 
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log

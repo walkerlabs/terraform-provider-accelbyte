@@ -17,7 +17,12 @@ type AccelByteMatchPoolModel struct {
 	// Computed during Read() operation
 	Id types.String `tfsdk:"id"`
 
-	// Fetched from AccelByte API during Read() opearation
+	// Must be set by user during resource creation
+
+	RuleSet         types.String `tfsdk:"rule_set"`
+	SessionTemplate types.String `tfsdk:"session_template"`
+
+	// Can be set by user during resource creation; will otherwise get defaults from API
 
 	AutoAcceptBackfillProposal        types.Bool   `tfsdk:"auto_accept_backfill_proposal"`
 	BackfillProposalExpirationSeconds types.Int32  `tfsdk:"backfill_proposal_expiration_seconds"`
@@ -26,10 +31,8 @@ type AccelByteMatchPoolModel struct {
 	CrossplayDisabled                 types.Bool   `tfsdk:"crossplay_disabled"`              // optional
 	MatchFunction                     types.String `tfsdk:"match_function"`
 	// MatchFunctionOverride             types.Object `tfsdk:"match_function_override"` // This is a AccelByteMatchPoolMatchFunctionOverrideDataSourceModel
-	PlatformGroupEnabled    types.Bool   `tfsdk:"platform_group_enabled"` // optional
-	RuleSet                 types.String `tfsdk:"rule_set"`
-	SessionTemplate         types.String `tfsdk:"session_template"`
-	TicketExpirationSeconds types.Int32  `tfsdk:"ticket_expiration_seconds"`
+	PlatformGroupEnabled    types.Bool  `tfsdk:"platform_group_enabled"` // optional
+	TicketExpirationSeconds types.Int32 `tfsdk:"ticket_expiration_seconds"`
 }
 
 // type AccelByteMatchPoolMatchFunctionOverrideDataSourceModel struct {
