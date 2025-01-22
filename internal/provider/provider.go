@@ -10,6 +10,7 @@ import (
 	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/factory"
 	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/service/iam"
 	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/service/match2"
+	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/service/session"
 	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/utils/auth"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/ephemeral"
@@ -44,7 +45,8 @@ type AccelByteProviderModel struct {
 }
 
 type AccelByteProviderClients struct {
-	Match2PoolsService *match2.MatchPoolsService
+	Match2PoolsService                  *match2.MatchPoolsService
+	SessionConfigurationTemplateService *session.ConfigurationTemplateService
 }
 
 func (p *AccelByteProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -272,6 +274,12 @@ func (p *AccelByteProvider) Configure(ctx context.Context, req provider.Configur
 		Client:          factory.NewMatch2Client(&configRepository),
 		TokenRepository: tokenRepository,
 	}
+
+	sessionConfigurationTemplateService := &session.ConfigurationTemplateService{
+		Client:          factory.NewSessionClient(&configRepository),
+		TokenRepository: tokenRepository,
+	}
+
 	/*
 		match2PoolsService := &match2.MatchPoolsService{
 			Client:          factory.NewMatch2Client(&configRepository),
@@ -298,7 +306,8 @@ func (p *AccelByteProvider) Configure(ctx context.Context, req provider.Configur
 	*/
 
 	clients := &AccelByteProviderClients{
-		Match2PoolsService: match2PoolsService,
+		Match2PoolsService:                  match2PoolsService,
+		SessionConfigurationTemplateService: sessionConfigurationTemplateService,
 	}
 
 	resp.DataSourceData = clients
@@ -308,6 +317,7 @@ func (p *AccelByteProvider) Configure(ctx context.Context, req provider.Configur
 func (p *AccelByteProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewAccelByteMatchPoolResource,
+		NewAccelByteConfigurationTemplateResource,
 	}
 }
 
@@ -320,6 +330,7 @@ func (p *AccelByteProvider) EphemeralResources(ctx context.Context) []func() eph
 func (p *AccelByteProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		NewAccelByteMatchPoolDataSource,
+		NewAccelByteConfigurationTemplateDataSource,
 	}
 }
 
