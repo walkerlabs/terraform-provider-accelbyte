@@ -9,12 +9,18 @@ import (
 
 	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/service/session"
 	"github.com/AccelByte/accelbyte-go-sdk/session-sdk/pkg/sessionclient/configuration_template"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int32default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
@@ -84,7 +90,125 @@ func (r *AccelByteConfigurationTemplateResource) Schema(ctx context.Context, req
 				Required:            true,
 			},
 
-			// Can be set by user during resource creation; will otherwise get defaults from API
+			// Can be set by user during resource creation; will otherwise get defaults from schema
+
+			// "General" screen - Main configuration
+			"max_active_sessions": schema.Int32Attribute{
+				MarkdownDescription: "",
+				Optional:            true,
+				Computed:            true,
+				Default:             int32default.StaticInt32(-1),
+			},
+			// TODO: support "use Custom Session Function"
+
+			// "General" screen - Connection and Joinability
+			"invite_timeout": schema.Int32Attribute{
+				MarkdownDescription: "",
+				Optional:            true,
+				Computed:            true,
+				Default:             int32default.StaticInt32(60),
+			},
+			"inactive_timeout": schema.Int32Attribute{
+				MarkdownDescription: "",
+				Optional:            true,
+				Computed:            true,
+				Default:             int32default.StaticInt32(60),
+			},
+			"leader_election_grace_period": schema.Int32Attribute{
+				MarkdownDescription: "",
+				Optional:            true,
+				Computed:            true,
+				Default:             int32default.StaticInt32(0),
+			},
+
+			// "General" screen - Server
+			"server_type": schema.StringAttribute{
+				MarkdownDescription: "",
+				Optional:            true,
+				Computed:            true,
+				Default:             stringdefault.StaticString("NONE"),
+			},
+			// Only used when ServerType = AMS
+			"requested_regions": schema.ListAttribute{
+				ElementType:         types.StringType,
+				MarkdownDescription: "",
+				Optional:            true,
+				Computed:            true,
+				Default:             listdefault.StaticValue(types.ListValueMust(basetypes.StringType{}, []attr.Value{})),
+			},
+			"preferred_claim_keys": schema.ListAttribute{
+				ElementType:         types.StringType,
+				MarkdownDescription: "",
+				Optional:            true,
+				Computed:            true,
+				Default:             listdefault.StaticValue(types.ListValueMust(basetypes.StringType{}, []attr.Value{})),
+			},
+			"fallback_claim_keys": schema.ListAttribute{
+				ElementType:         types.StringType,
+				MarkdownDescription: "",
+				Optional:            true,
+				Computed:            true,
+				Default:             listdefault.StaticValue(types.ListValueMust(basetypes.StringType{}, []attr.Value{})),
+			},
+			// TODO: support ServerType = CUSTOM
+
+			// "Additional" screen settings
+			"auto_join_session": schema.BoolAttribute{
+				MarkdownDescription: "",
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
+			},
+			"chat_room": schema.BoolAttribute{
+				MarkdownDescription: "",
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
+			},
+			"secret_validation": schema.BoolAttribute{
+				MarkdownDescription: "",
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
+			},
+			"generate_code": schema.BoolAttribute{
+				MarkdownDescription: "",
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(true),
+			},
+			"immutable_session_storage": schema.BoolAttribute{
+				MarkdownDescription: "",
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
+			},
+			"manual_set_ready_for_ds": schema.BoolAttribute{
+				MarkdownDescription: "",
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
+			},
+			"tied_teams_session_lifetime": schema.BoolAttribute{
+				MarkdownDescription: "",
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
+			},
+			"auto_leave_session": schema.BoolAttribute{
+				MarkdownDescription: "",
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
+			},
+
+			// TODO: support "3rd party sync" options
+
+			// "Custom Attributes" screen
+			"custom_attributes": schema.StringAttribute{
+				MarkdownDescription: "",
+				Optional:            true,
+			},
 		},
 	}
 }
@@ -121,9 +245,15 @@ func (r *AccelByteConfigurationTemplateResource) Create(ctx context.Context, req
 
 	data.Id = types.StringValue(computeConfigurationTemplateId(data.Namespace.ValueString(), data.Name.ValueString()))
 
+	apiConfigurationTemplate, err := toApiConfigurationTemplate(ctx, data)
+	if err != nil {
+		resp.Diagnostics.AddError("Error when converting our internal state to an AccelByte API configuration template", fmt.Sprintf("Error: %#v", err))
+		return
+	}
+
 	input := &configuration_template.AdminCreateConfigurationTemplateV1Params{
 		Namespace: data.Namespace.ValueString(),
-		Body:      toApiConfigurationTemplate(data),
+		Body:      apiConfigurationTemplate,
 	}
 
 	configurationTemplate, err := r.client.AdminCreateConfigurationTemplateV1Short(input)
@@ -132,7 +262,7 @@ func (r *AccelByteConfigurationTemplateResource) Create(ctx context.Context, req
 		return
 	}
 
-	updateFromApiConfigurationTemplate(&data, configurationTemplate)
+	updateFromApiConfigurationTemplate(ctx, &data, configurationTemplate)
 
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log
@@ -165,7 +295,7 @@ func (r *AccelByteConfigurationTemplateResource) Read(ctx context.Context, req r
 		return
 	}
 
-	updateFromApiConfigurationTemplate(&data, configTemplate)
+	updateFromApiConfigurationTemplate(ctx, &data, configTemplate)
 
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log
@@ -188,19 +318,25 @@ func (r *AccelByteConfigurationTemplateResource) Update(ctx context.Context, req
 		return
 	}
 
+	apiConfigurationTemplateConfig, err := toApiConfigurationTemplateConfig(ctx, data)
+	if err != nil {
+		resp.Diagnostics.AddError("Error when converting our internal state to an AccelByte API configuration template config", fmt.Sprintf("Error: %#v", err))
+		return
+	}
+
 	input := &configuration_template.AdminUpdateConfigurationTemplateV1Params{
 		Namespace: data.Namespace.ValueString(),
 		Name:      data.Name.ValueString(),
-		Body:      toApiConfigurationTemplateConfig(data),
+		Body:      apiConfigurationTemplateConfig,
 	}
 
 	apiConfigurationTemplate, err := r.client.AdminUpdateConfigurationTemplateV1Short(input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error when accessing AccelByte API", fmt.Sprintf("Unable to update new AccelByte configuration template in namespace '%s', name '%s', got error: %s", input.Namespace, input.Name, err))
+		resp.Diagnostics.AddError("Error when accessing AccelByte API", fmt.Sprintf("Unable to update AccelByte configuration template in namespace '%s', name '%s', got error: %s", input.Namespace, input.Name, err))
 		return
 	}
 
-	updateFromApiConfigurationTemplate(&data, apiConfigurationTemplate)
+	updateFromApiConfigurationTemplate(ctx, &data, apiConfigurationTemplate)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

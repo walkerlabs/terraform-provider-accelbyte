@@ -58,6 +58,7 @@ func (d *AccelByteConfigurationTemplateDataSource) Schema(ctx context.Context, r
 
 			// Fetched from AccelByte API during Read() opearation
 
+			// "General" screen - Main configuration
 			"min_players": schema.Int32Attribute{
 				MarkdownDescription: "",
 				Computed:            true,
@@ -66,7 +67,95 @@ func (d *AccelByteConfigurationTemplateDataSource) Schema(ctx context.Context, r
 				MarkdownDescription: "",
 				Computed:            true,
 			},
+
+			// "General" screen - Connection and Joinability
 			"joinability": schema.StringAttribute{
+				MarkdownDescription: "",
+				Computed:            true,
+			},
+
+			// "General" screen - Main configuration
+			"max_active_sessions": schema.Int32Attribute{
+				MarkdownDescription: "",
+				Computed:            true,
+			},
+			// TODO: support "use Custom Session Function"
+
+			// "General" screen - Connection and Joinability
+			"invite_timeout": schema.Int32Attribute{
+				MarkdownDescription: "",
+				Computed:            true,
+			},
+			"inactive_timeout": schema.Int32Attribute{
+				MarkdownDescription: "",
+				Computed:            true,
+			},
+			"leader_election_grace_period": schema.Int32Attribute{
+				MarkdownDescription: "",
+				Computed:            true,
+			},
+
+			// "General" screen - Server
+			"server_type": schema.StringAttribute{
+				MarkdownDescription: "",
+				Computed:            true,
+			},
+			// Only used when ServerType = AMS
+			"requested_regions": schema.ListAttribute{
+				ElementType:         types.StringType,
+				MarkdownDescription: "",
+				Computed:            true,
+			},
+			"preferred_claim_keys": schema.ListAttribute{
+				ElementType:         types.StringType,
+				MarkdownDescription: "",
+				Computed:            true,
+			},
+			"fallback_claim_keys": schema.ListAttribute{
+				ElementType:         types.StringType,
+				MarkdownDescription: "",
+				Computed:            true,
+			},
+			// TODO: support ServerType = CUSTOM
+
+			// "Additional" screen settings
+			"auto_join_session": schema.BoolAttribute{
+				MarkdownDescription: "",
+				Computed:            true,
+			},
+			"chat_room": schema.BoolAttribute{
+				MarkdownDescription: "",
+				Computed:            true,
+			},
+			"secret_validation": schema.BoolAttribute{
+				MarkdownDescription: "",
+				Computed:            true,
+			},
+			"generate_code": schema.BoolAttribute{
+				MarkdownDescription: "",
+				Computed:            true,
+			},
+			"immutable_session_storage": schema.BoolAttribute{
+				MarkdownDescription: "",
+				Computed:            true,
+			},
+			"manual_set_ready_for_ds": schema.BoolAttribute{
+				MarkdownDescription: "",
+				Computed:            true,
+			},
+			"tied_teams_session_lifetime": schema.BoolAttribute{
+				MarkdownDescription: "",
+				Computed:            true,
+			},
+			"auto_leave_session": schema.BoolAttribute{
+				MarkdownDescription: "",
+				Computed:            true,
+			},
+
+			// TODO: support "3rd party sync" options
+
+			// "Custom Attributes" screen
+			"custom_attributes": schema.StringAttribute{
 				MarkdownDescription: "",
 				Computed:            true,
 			},
@@ -116,7 +205,11 @@ func (d *AccelByteConfigurationTemplateDataSource) Read(ctx context.Context, req
 		return
 	}
 
-	updateFromApiConfigurationTemplate(&data, configTemplate)
+	err = updateFromApiConfigurationTemplate(ctx, &data, configTemplate)
+	if err != nil {
+		resp.Diagnostics.AddError("Error when updating our internal state from the configuration template", fmt.Sprintf("Error: %#v", err))
+		return
+	}
 
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log
