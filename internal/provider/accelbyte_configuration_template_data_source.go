@@ -127,7 +127,23 @@ func (d *AccelByteConfigurationTemplateDataSource) Schema(ctx context.Context, r
 				Computed: true,
 			},
 
-			// TODO: support ServerType = CUSTOM
+			// Custom server
+			"custom_server": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"custom_url": schema.StringAttribute{
+						MarkdownDescription: "",
+						Optional:            true,
+						Computed:            true,
+					},
+					"extend_app": schema.StringAttribute{
+						MarkdownDescription: "",
+						Optional:            true,
+						Computed:            true,
+					},
+				},
+				Optional: true,
+				Computed: true,
+			},
 
 			// "Additional" screen settings
 			"auto_join_session": schema.BoolAttribute{

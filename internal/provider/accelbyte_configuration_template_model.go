@@ -46,9 +46,9 @@ type AccelByteConfigurationTemplateModel struct {
 	LeaderElectionGracePeriod types.Int32 `tfsdk:"leader_election_grace_period"`
 
 	// Only one of these should exist at a time
-	P2pServer types.Object `tfsdk:"p2p_server"` // AccelByteConfigurationTemplateP2pServerModel
-	AmsServer types.Object `tfsdk:"ams_server"` // AccelByteConfigurationTemplateAmsServerModel
-	// TODO: support ServerType = CUSTOM
+	P2pServer    types.Object `tfsdk:"p2p_server"`    // AccelByteConfigurationTemplateP2pServerModel
+	AmsServer    types.Object `tfsdk:"ams_server"`    // AccelByteConfigurationTemplateAmsServerModel
+	CustomServer types.Object `tfsdk:"custom_server"` // AccelByteConfigurationTemplateCustomServerModel
 
 	// "Additional" screen settings
 	AutoJoinSession          types.Bool `tfsdk:"auto_join_session"`
@@ -83,12 +83,22 @@ var AccelByteConfigurationTemplateAmsServerModelAttributeTypes = map[string]attr
 	"fallback_claim_keys":  types.ListType{}.WithElementType(types.StringType),
 }
 
+type AccelByteConfigurationTemplateCustomServerModel struct {
+	CustomUrl types.String `tfsdk:"custom_url"`
+	ExtendApp types.String `tfsdk:"extend_app"`
+}
+
+var AccelByteConfigurationTemplateCustomServerModelAttributeTypes = map[string]attr.Type{
+	"custom_url": types.StringType,
+	"extend_app": types.StringType,
+}
+
 type AccelByteConfigurationTemplateServerType string
 
 const (
 	AccelByteConfigurationTemplateServerTypeNone AccelByteConfigurationTemplateServerType = "NONE"
 	AccelByteConfigurationTemplateServerTypeP2P  AccelByteConfigurationTemplateServerType = "P2P"
-	AccelByteConfigurationTemplateServerTypeAms  AccelByteConfigurationTemplateServerType = "DS"
+	AccelByteConfigurationTemplateServerTypeDS   AccelByteConfigurationTemplateServerType = "DS"
 )
 
 type AccelByteConfigurationTemplateDsSourceType string
@@ -118,9 +128,16 @@ func updateFromApiConfigurationTemplate(ctx context.Context, data *AccelByteConf
 
 	// "General" screen - Server
 	serverType := types.StringValue(*configurationTemplate.Type).ValueString()
-	data.AmsServer = basetypes.NewObjectNull(AccelByteConfigurationTemplateAmsServerModelAttributeTypes)
+	dsSource := types.StringValue(configurationTemplate.DsSource).ValueString()
 	data.P2pServer = basetypes.NewObjectNull(AccelByteConfigurationTemplateP2pServerModelAttributeTypes)
-	if serverType == string(AccelByteConfigurationTemplateServerTypeAms) {
+	data.AmsServer = basetypes.NewObjectNull(AccelByteConfigurationTemplateAmsServerModelAttributeTypes)
+	data.CustomServer = basetypes.NewObjectNull(AccelByteConfigurationTemplateCustomServerModelAttributeTypes)
+
+	if serverType == string(AccelByteConfigurationTemplateServerTypeP2P) {
+		p2pServer, p2pServerDiags := basetypes.NewObjectValueFrom(ctx, AccelByteConfigurationTemplateP2pServerModelAttributeTypes, AccelByteConfigurationTemplateP2pServerModel{})
+		data.P2pServer = p2pServer
+		diags.Append(p2pServerDiags...)
+	} else if serverType == string(AccelByteConfigurationTemplateServerTypeDS) && dsSource == string(AccelByteConfigurationTemplateDsSourceAms) {
 		requestedRegions, requestedRegionsDiags := types.ListValueFrom(ctx, types.StringType, configurationTemplate.RequestedRegions)
 		diags.Append(requestedRegionsDiags...)
 		preferredClaimKeys, preferredClaimKeysDiags := types.ListValueFrom(ctx, types.StringType, configurationTemplate.PreferredClaimKeys)
@@ -137,13 +154,17 @@ func updateFromApiConfigurationTemplate(ctx context.Context, data *AccelByteConf
 		amsServer, amsServerDiags := basetypes.NewObjectValueFrom(ctx, AccelByteConfigurationTemplateAmsServerModelAttributeTypes, amsServerModel)
 		data.AmsServer = amsServer
 		diags.Append(amsServerDiags...)
+	} else if serverType == string(AccelByteConfigurationTemplateServerTypeDS) && dsSource == string(AccelByteConfigurationTemplateDsSourceCustom) {
 
-	} else if serverType == string(AccelByteConfigurationTemplateServerTypeP2P) {
-		p2pServer, p2pServerDiags := basetypes.NewObjectValueFrom(ctx, AccelByteConfigurationTemplateP2pServerModelAttributeTypes, AccelByteConfigurationTemplateP2pServerModel{})
-		data.P2pServer = p2pServer
-		diags.Append(p2pServerDiags...)
+		customServerModel := &AccelByteConfigurationTemplateCustomServerModel{
+			CustomUrl: types.StringValue(configurationTemplate.CustomURLGRPC),
+			ExtendApp: types.StringValue(configurationTemplate.AppName),
+		}
+
+		customServer, customServerDiags := basetypes.NewObjectValueFrom(ctx, AccelByteConfigurationTemplateCustomServerModelAttributeTypes, customServerModel)
+		data.CustomServer = customServer
+		diags.Append(customServerDiags...)
 	}
-	// TODO: support ServerType = CUSTOM
 
 	// "Additional" screen settings
 	data.AutoJoinSession = types.BoolValue(configurationTemplate.AutoJoin)
@@ -172,16 +193,20 @@ func toApiConfigurationTemplate(ctx context.Context, data AccelByteConfiguration
 	serverType := AccelByteConfigurationTemplateServerTypeNone
 	dsSource := AccelByteConfigurationTemplateDsSourceNone
 
+	// Handle P2P server
+
 	if !data.P2pServer.IsNull() && !data.P2pServer.IsUnknown() {
 		serverType = AccelByteConfigurationTemplateServerTypeP2P
 	}
+
+	// Handle AMS server
 
 	var requestedRegions []string = nil
 	var preferredClaimKeys []string = nil
 	var fallbackClaimKeys []string = nil
 
 	if !data.AmsServer.IsNull() && !data.AmsServer.IsUnknown() {
-		serverType = AccelByteConfigurationTemplateServerTypeAms
+		serverType = AccelByteConfigurationTemplateServerTypeDS
 		dsSource = AccelByteConfigurationTemplateDsSourceAms
 
 		var amsServer AccelByteConfigurationTemplateAmsServerModel
@@ -193,6 +218,22 @@ func toApiConfigurationTemplate(ctx context.Context, data AccelByteConfiguration
 		diags.Append(amsServer.RequestedRegions.ElementsAs(ctx, &requestedRegions, false)...)
 		diags.Append(amsServer.PreferredClaimKeys.ElementsAs(ctx, &preferredClaimKeys, false)...)
 		diags.Append(amsServer.FallbackClaimKeys.ElementsAs(ctx, &fallbackClaimKeys, false)...)
+	}
+
+	// Handle Custom server
+
+	customUrlGrpc := ""
+	appName := ""
+
+	if !data.CustomServer.IsNull() && !data.CustomServer.IsUnknown() {
+		serverType = AccelByteConfigurationTemplateServerTypeDS
+		dsSource = AccelByteConfigurationTemplateDsSourceCustom
+
+		var customServer AccelByteConfigurationTemplateCustomServerModel
+		diags.Append(data.CustomServer.As(ctx, &customServer, basetypes.ObjectAsOptions{})...)
+
+		customUrlGrpc = customServer.CustomUrl.ValueString()
+		appName = customServer.ExtendApp.ValueString()
 	}
 
 	var customAttributesJson interface{}
@@ -222,11 +263,13 @@ func toApiConfigurationTemplate(ctx context.Context, data AccelByteConfiguration
 		// "General" screen - Server
 		Type:     &serverTypeString,
 		DsSource: string(dsSource),
-		// Only used when ServerType = AMS
+		// Only used when ServerType = DS, DsSource = AMS
 		RequestedRegions:   requestedRegions,
 		PreferredClaimKeys: preferredClaimKeys,
 		FallbackClaimKeys:  fallbackClaimKeys,
-		// TODO: support ServerType = CUSTOM
+		// Only used when ServerType = DS, DsSource = Custom
+		CustomURLGRPC: customUrlGrpc,
+		AppName:       appName,
 
 		// "Additional" screen settings
 		AutoJoin:                data.AutoJoinSession.ValueBool(),
@@ -250,22 +293,20 @@ func toApiConfigurationTemplateConfig(ctx context.Context, data AccelByteConfigu
 	serverType := AccelByteConfigurationTemplateServerTypeNone
 	dsSource := AccelByteConfigurationTemplateDsSourceNone
 
-	// diags.Append(diag.NewWarningDiagnostic("data.P2pServer value a ", fmt.Sprintf("p2p server is null: %v", data.P2pServer.IsNull())))
-	// diags.Append(diag.NewWarningDiagnostic("data.AmsServer value b ", fmt.Sprintf("ams server is null: %v", data.AmsServer.IsNull())))
-	// diags.Append(diag.NewWarningDiagnostic("data.P2pServer value c ", fmt.Sprintf("p2p server is unknown: %v", data.P2pServer.IsUnknown())))
-	// diags.Append(diag.NewWarningDiagnostic("data.AmsServer value d ", fmt.Sprintf("ams server is unknown: %v", data.AmsServer.IsUnknown())))
-	// return nil, diags, errors.New("abort")
+	// Handle P2P server
 
 	if !data.P2pServer.IsNull() && !data.P2pServer.IsUnknown() {
 		serverType = AccelByteConfigurationTemplateServerTypeP2P
 	}
+
+	// Handle AMS server
 
 	var requestedRegions []string = nil
 	var preferredClaimKeys []string = nil
 	var fallbackClaimKeys []string = nil
 
 	if !data.AmsServer.IsNull() && !data.AmsServer.IsUnknown() {
-		serverType = AccelByteConfigurationTemplateServerTypeAms
+		serverType = AccelByteConfigurationTemplateServerTypeDS
 		dsSource = AccelByteConfigurationTemplateDsSourceAms
 
 		var amsServer AccelByteConfigurationTemplateAmsServerModel
@@ -277,6 +318,22 @@ func toApiConfigurationTemplateConfig(ctx context.Context, data AccelByteConfigu
 		diags.Append(amsServer.RequestedRegions.ElementsAs(ctx, &requestedRegions, false)...)
 		diags.Append(amsServer.PreferredClaimKeys.ElementsAs(ctx, &preferredClaimKeys, false)...)
 		diags.Append(amsServer.FallbackClaimKeys.ElementsAs(ctx, &fallbackClaimKeys, false)...)
+	}
+
+	// Handle Custom server
+
+	customUrlGrpc := ""
+	appName := ""
+
+	if !data.CustomServer.IsNull() && !data.CustomServer.IsUnknown() {
+		serverType = AccelByteConfigurationTemplateServerTypeDS
+		dsSource = AccelByteConfigurationTemplateDsSourceCustom
+
+		var customServer AccelByteConfigurationTemplateCustomServerModel
+		diags.Append(data.CustomServer.As(ctx, &customServer, basetypes.ObjectAsOptions{})...)
+
+		customUrlGrpc = customServer.CustomUrl.ValueString()
+		appName = customServer.ExtendApp.ValueString()
 	}
 
 	var customAttributesJson interface{}
@@ -306,11 +363,13 @@ func toApiConfigurationTemplateConfig(ctx context.Context, data AccelByteConfigu
 		// "General" screen - Server
 		Type:     &serverTypeString,
 		DsSource: string(dsSource),
-		// Only used when ServerType = AMS
+		// Only used when ServerType = DS, DsSource = AMS
 		RequestedRegions:   requestedRegions,
 		PreferredClaimKeys: preferredClaimKeys,
 		FallbackClaimKeys:  fallbackClaimKeys,
-		// TODO: support ServerType = CUSTOM
+		// Only used when ServerType = DS, DsSource = Custom
+		CustomURLGRPC: customUrlGrpc,
+		AppName:       appName,
 
 		// "Additional" screen settings
 		AutoJoin:                data.AutoJoinSession.ValueBool(),

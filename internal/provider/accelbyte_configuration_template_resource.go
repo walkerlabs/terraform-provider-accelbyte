@@ -10,6 +10,7 @@ import (
 	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/service/session"
 	"github.com/AccelByte/accelbyte-go-sdk/session-sdk/pkg/sessionclient/configuration_template"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -18,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int32default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -130,9 +132,10 @@ func (r *AccelByteConfigurationTemplateResource) Schema(ctx context.Context, req
 				Optional:   true,
 				Computed:   true,
 				Validators: []validator.Object{
-					// P2P server configuration cannot coexist with an AMS server configuration
+					// P2P server configuration cannot coexist with an AMS or Custom server configuration
 					objectvalidator.ConflictsWith(path.Expressions{
 						path.MatchRoot("ams_server"),
+						path.MatchRoot("custom_server"),
 					}...),
 				},
 			},
@@ -166,7 +169,31 @@ func (r *AccelByteConfigurationTemplateResource) Schema(ctx context.Context, req
 				Computed: true,
 			},
 
-			// TODO: support ServerType = CUSTOM
+			// Custom server
+			"custom_server": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"custom_url": schema.StringAttribute{
+						MarkdownDescription: "",
+						Optional:            true,
+						Computed:            true,
+						Default:             stringdefault.StaticString(""),
+						Validators: []validator.String{
+							// Custom URL cannot be used at the same time as an Extend App
+							stringvalidator.ConflictsWith(path.Expressions{
+								path.MatchRelative().AtParent().AtName("extend_app"),
+							}...),
+						},
+					},
+					"extend_app": schema.StringAttribute{
+						MarkdownDescription: "",
+						Optional:            true,
+						Computed:            true,
+						Default:             stringdefault.StaticString(""),
+					},
+				},
+				Optional: true,
+				Computed: true,
+			},
 
 			// "Additional" screen settings
 			"auto_join_session": schema.BoolAttribute{
