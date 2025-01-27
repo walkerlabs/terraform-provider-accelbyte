@@ -9,6 +9,7 @@ import (
 
 	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/service/session"
 	"github.com/AccelByte/accelbyte-go-sdk/session-sdk/pkg/sessionclient/configuration_template"
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -17,8 +18,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int32default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -121,35 +122,50 @@ func (r *AccelByteConfigurationTemplateResource) Schema(ctx context.Context, req
 				Default:             int32default.StaticInt32(0),
 			},
 
-			// "General" screen - Server
-			"server_type": schema.StringAttribute{
-				MarkdownDescription: "",
-				Optional:            true,
-				Computed:            true,
-				Default:             stringdefault.StaticString("NONE"),
+			// ServerType = NONE is implied when none of the other server types are specified in the configuration
+
+			// Peer-to-Peer server
+			"p2p_server": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{},
+				Optional:   true,
+				Computed:   true,
+				Validators: []validator.Object{
+					// P2P server configuration cannot coexist with an AMS server configuration
+					objectvalidator.ConflictsWith(path.Expressions{
+						path.MatchRoot("ams_server"),
+					}...),
+				},
 			},
-			// Only used when ServerType = AMS
-			"requested_regions": schema.ListAttribute{
-				ElementType:         types.StringType,
-				MarkdownDescription: "",
-				Optional:            true,
-				Computed:            true,
-				Default:             listdefault.StaticValue(types.ListValueMust(basetypes.StringType{}, []attr.Value{})),
+
+			// AMS server
+			"ams_server": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"requested_regions": schema.ListAttribute{
+						ElementType:         types.StringType,
+						MarkdownDescription: "",
+						Optional:            true,
+						Computed:            true,
+						Default:             listdefault.StaticValue(types.ListValueMust(basetypes.StringType{}, []attr.Value{})),
+					},
+					"preferred_claim_keys": schema.ListAttribute{
+						ElementType:         types.StringType,
+						MarkdownDescription: "",
+						Optional:            true,
+						Computed:            true,
+						Default:             listdefault.StaticValue(types.ListValueMust(basetypes.StringType{}, []attr.Value{})),
+					},
+					"fallback_claim_keys": schema.ListAttribute{
+						ElementType:         types.StringType,
+						MarkdownDescription: "",
+						Optional:            true,
+						Computed:            true,
+						Default:             listdefault.StaticValue(types.ListValueMust(basetypes.StringType{}, []attr.Value{})),
+					},
+				},
+				Optional: true,
+				Computed: true,
 			},
-			"preferred_claim_keys": schema.ListAttribute{
-				ElementType:         types.StringType,
-				MarkdownDescription: "",
-				Optional:            true,
-				Computed:            true,
-				Default:             listdefault.StaticValue(types.ListValueMust(basetypes.StringType{}, []attr.Value{})),
-			},
-			"fallback_claim_keys": schema.ListAttribute{
-				ElementType:         types.StringType,
-				MarkdownDescription: "",
-				Optional:            true,
-				Computed:            true,
-				Default:             listdefault.StaticValue(types.ListValueMust(basetypes.StringType{}, []attr.Value{})),
-			},
+
 			// TODO: support ServerType = CUSTOM
 
 			// "Additional" screen settings
@@ -245,7 +261,8 @@ func (r *AccelByteConfigurationTemplateResource) Create(ctx context.Context, req
 
 	data.Id = types.StringValue(computeConfigurationTemplateId(data.Namespace.ValueString(), data.Name.ValueString()))
 
-	apiConfigurationTemplate, err := toApiConfigurationTemplate(ctx, data)
+	apiConfigurationTemplate, diags, err := toApiConfigurationTemplate(ctx, data)
+	resp.Diagnostics.Append(diags...)
 	if err != nil {
 		resp.Diagnostics.AddError("Error when converting our internal state to an AccelByte API configuration template", fmt.Sprintf("Error: %#v", err))
 		return
@@ -318,7 +335,8 @@ func (r *AccelByteConfigurationTemplateResource) Update(ctx context.Context, req
 		return
 	}
 
-	apiConfigurationTemplateConfig, err := toApiConfigurationTemplateConfig(ctx, data)
+	apiConfigurationTemplateConfig, diagnostics, err := toApiConfigurationTemplateConfig(ctx, data)
+	resp.Diagnostics.Append(diagnostics...)
 	if err != nil {
 		resp.Diagnostics.AddError("Error when converting our internal state to an AccelByte API configuration template config", fmt.Sprintf("Error: %#v", err))
 		return

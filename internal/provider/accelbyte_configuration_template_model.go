@@ -9,7 +9,10 @@ import (
 	"fmt"
 
 	"github.com/AccelByte/accelbyte-go-sdk/session-sdk/pkg/sessionclientmodels"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/pkg/errors"
 )
 
@@ -42,12 +45,9 @@ type AccelByteConfigurationTemplateModel struct {
 	InactiveTimeout           types.Int32 `tfsdk:"inactive_timeout"`
 	LeaderElectionGracePeriod types.Int32 `tfsdk:"leader_election_grace_period"`
 
-	// "General" screen - Server
-	ServerType types.String `tfsdk:"server_type"`
-	// Only used when ServerType = AMS
-	RequestedRegions   types.List `tfsdk:"requested_regions"`
-	PreferredClaimKeys types.List `tfsdk:"preferred_claim_keys"`
-	FallbackClaimKeys  types.List `tfsdk:"fallback_claim_keys"`
+	// Only one of these should exist at a time
+	P2pServer types.Object `tfsdk:"p2p_server"` // AccelByteConfigurationTemplateP2pServerModel
+	AmsServer types.Object `tfsdk:"ams_server"` // AccelByteConfigurationTemplateAmsServerModel
 	// TODO: support ServerType = CUSTOM
 
 	// "Additional" screen settings
@@ -66,7 +66,43 @@ type AccelByteConfigurationTemplateModel struct {
 	CustomAttributes types.String `tfsdk:"custom_attributes"`
 }
 
-func updateFromApiConfigurationTemplate(ctx context.Context, data *AccelByteConfigurationTemplateModel, configurationTemplate *sessionclientmodels.ApimodelsConfigurationTemplateResponse) error {
+type AccelByteConfigurationTemplateP2pServerModel struct {
+}
+
+var AccelByteConfigurationTemplateP2pServerModelAttributeTypes = map[string]attr.Type{}
+
+type AccelByteConfigurationTemplateAmsServerModel struct {
+	RequestedRegions   types.List `tfsdk:"requested_regions"`
+	PreferredClaimKeys types.List `tfsdk:"preferred_claim_keys"`
+	FallbackClaimKeys  types.List `tfsdk:"fallback_claim_keys"`
+}
+
+var AccelByteConfigurationTemplateAmsServerModelAttributeTypes = map[string]attr.Type{
+	"requested_regions":    types.ListType{}.WithElementType(types.StringType),
+	"preferred_claim_keys": types.ListType{}.WithElementType(types.StringType),
+	"fallback_claim_keys":  types.ListType{}.WithElementType(types.StringType),
+}
+
+type AccelByteConfigurationTemplateServerType string
+
+const (
+	AccelByteConfigurationTemplateServerTypeNone AccelByteConfigurationTemplateServerType = "NONE"
+	AccelByteConfigurationTemplateServerTypeP2P  AccelByteConfigurationTemplateServerType = "P2P"
+	AccelByteConfigurationTemplateServerTypeAms  AccelByteConfigurationTemplateServerType = "DS"
+)
+
+type AccelByteConfigurationTemplateDsSourceType string
+
+const (
+	AccelByteConfigurationTemplateDsSourceNone   AccelByteConfigurationTemplateDsSourceType = ""
+	AccelByteConfigurationTemplateDsSourceAms    AccelByteConfigurationTemplateDsSourceType = "AMS"
+	AccelByteConfigurationTemplateDsSourceCustom AccelByteConfigurationTemplateDsSourceType = "custom"
+)
+
+func updateFromApiConfigurationTemplate(ctx context.Context, data *AccelByteConfigurationTemplateModel, configurationTemplate *sessionclientmodels.ApimodelsConfigurationTemplateResponse) (diag.Diagnostics, error) {
+
+	var diags diag.Diagnostics = nil
+
 	data.MinPlayers = types.Int32Value(*configurationTemplate.MinPlayers)
 	data.MaxPlayers = types.Int32Value(*configurationTemplate.MaxPlayers)
 	data.Joinability = types.StringValue(*configurationTemplate.Joinability)
@@ -81,16 +117,32 @@ func updateFromApiConfigurationTemplate(ctx context.Context, data *AccelByteConf
 	data.LeaderElectionGracePeriod = types.Int32Value(configurationTemplate.LeaderElectionGracePeriod)
 
 	// "General" screen - Server
-	data.ServerType = types.StringValue(*configurationTemplate.Type)
-	// Only used when ServerType = AMS
+	serverType := types.StringValue(*configurationTemplate.Type).ValueString()
+	data.AmsServer = basetypes.NewObjectNull(AccelByteConfigurationTemplateAmsServerModelAttributeTypes)
+	data.P2pServer = basetypes.NewObjectNull(AccelByteConfigurationTemplateP2pServerModelAttributeTypes)
+	if serverType == string(AccelByteConfigurationTemplateServerTypeAms) {
+		requestedRegions, requestedRegionsDiags := types.ListValueFrom(ctx, types.StringType, configurationTemplate.RequestedRegions)
+		diags.Append(requestedRegionsDiags...)
+		preferredClaimKeys, preferredClaimKeysDiags := types.ListValueFrom(ctx, types.StringType, configurationTemplate.PreferredClaimKeys)
+		diags.Append(preferredClaimKeysDiags...)
+		fallbackClaimKeys, fallbackClaimKeysDiags := types.ListValueFrom(ctx, types.StringType, configurationTemplate.FallbackClaimKeys)
+		diags.Append(fallbackClaimKeysDiags...)
 
-	requestedRegions, _ := types.ListValueFrom(ctx, types.StringType, configurationTemplate.RequestedRegions)
-	data.RequestedRegions = requestedRegions
-	preferredClaimKeys, _ := types.ListValueFrom(ctx, types.StringType, configurationTemplate.PreferredClaimKeys)
-	data.PreferredClaimKeys = preferredClaimKeys
-	fallbackClaimKeys, _ := types.ListValueFrom(ctx, types.StringType, configurationTemplate.FallbackClaimKeys)
-	data.FallbackClaimKeys = fallbackClaimKeys
+		amsServerModel := &AccelByteConfigurationTemplateAmsServerModel{
+			RequestedRegions:   requestedRegions,
+			PreferredClaimKeys: preferredClaimKeys,
+			FallbackClaimKeys:  fallbackClaimKeys,
+		}
 
+		amsServer, amsServerDiags := basetypes.NewObjectValueFrom(ctx, AccelByteConfigurationTemplateAmsServerModelAttributeTypes, amsServerModel)
+		data.AmsServer = amsServer
+		diags.Append(amsServerDiags...)
+
+	} else if serverType == string(AccelByteConfigurationTemplateServerTypeP2P) {
+		p2pServer, p2pServerDiags := basetypes.NewObjectValueFrom(ctx, AccelByteConfigurationTemplateP2pServerModelAttributeTypes, AccelByteConfigurationTemplateP2pServerModel{})
+		data.P2pServer = p2pServer
+		diags.Append(p2pServerDiags...)
+	}
 	// TODO: support ServerType = CUSTOM
 
 	// "Additional" screen settings
@@ -106,27 +158,50 @@ func updateFromApiConfigurationTemplate(ctx context.Context, data *AccelByteConf
 	// "Custom Attributes" screen
 	customAttributesJson, err := json.Marshal(configurationTemplate.Attributes)
 	if err != nil {
-		return errors.Wrap(err, "Unable to convert API's Configuration Template's custom attributes to JSON: "+fmt.Sprintf("%#v", configurationTemplate.Attributes))
+		return diags, errors.Wrap(err, "Unable to convert API's Configuration Template's custom attributes to JSON: "+fmt.Sprintf("%#v", configurationTemplate.Attributes))
 	}
 
 	data.CustomAttributes = types.StringValue(string(customAttributesJson))
-	return nil
+	return diags, nil
 }
 
-func toApiConfigurationTemplate(ctx context.Context, data AccelByteConfigurationTemplateModel) (*sessionclientmodels.ApimodelsCreateConfigurationTemplateRequest, error) {
+func toApiConfigurationTemplate(ctx context.Context, data AccelByteConfigurationTemplateModel) (*sessionclientmodels.ApimodelsCreateConfigurationTemplateRequest, diag.Diagnostics, error) {
 
-	requestedRegions := make([]string, len(data.RequestedRegions.Elements()))
-	_ = data.RequestedRegions.ElementsAs(ctx, &requestedRegions, false)
-	preferredClaimKeys := make([]string, len(data.PreferredClaimKeys.Elements()))
-	_ = data.PreferredClaimKeys.ElementsAs(ctx, &preferredClaimKeys, false)
-	fallbackClaimKeys := make([]string, len(data.FallbackClaimKeys.Elements()))
-	_ = data.FallbackClaimKeys.ElementsAs(ctx, &fallbackClaimKeys, false)
+	var diags diag.Diagnostics = nil
+
+	serverType := AccelByteConfigurationTemplateServerTypeNone
+	dsSource := AccelByteConfigurationTemplateDsSourceNone
+
+	if !data.P2pServer.IsNull() && !data.P2pServer.IsUnknown() {
+		serverType = AccelByteConfigurationTemplateServerTypeP2P
+	}
+
+	var requestedRegions []string = nil
+	var preferredClaimKeys []string = nil
+	var fallbackClaimKeys []string = nil
+
+	if !data.AmsServer.IsNull() && !data.AmsServer.IsUnknown() {
+		serverType = AccelByteConfigurationTemplateServerTypeAms
+		dsSource = AccelByteConfigurationTemplateDsSourceAms
+
+		var amsServer AccelByteConfigurationTemplateAmsServerModel
+		diags.Append(data.AmsServer.As(ctx, &amsServer, basetypes.ObjectAsOptions{})...)
+
+		requestedRegions = make([]string, len(amsServer.RequestedRegions.Elements()))
+		preferredClaimKeys = make([]string, len(amsServer.PreferredClaimKeys.Elements()))
+		fallbackClaimKeys = make([]string, len(amsServer.FallbackClaimKeys.Elements()))
+		diags.Append(amsServer.RequestedRegions.ElementsAs(ctx, &requestedRegions, false)...)
+		diags.Append(amsServer.PreferredClaimKeys.ElementsAs(ctx, &preferredClaimKeys, false)...)
+		diags.Append(amsServer.FallbackClaimKeys.ElementsAs(ctx, &fallbackClaimKeys, false)...)
+	}
 
 	var customAttributesJson interface{}
 	err := json.Unmarshal([]byte(data.CustomAttributes.ValueString()), &customAttributesJson)
 	if err != nil {
-		return nil, errors.Wrap(err, "Unable to convert Session Template's custom attributes to JSON: "+fmt.Sprintf("%#v", data.CustomAttributes))
+		return nil, diags, errors.Wrap(err, "Unable to convert Session Template's custom attributes to JSON: "+fmt.Sprintf("%#v", data.CustomAttributes))
 	}
+
+	serverTypeString := string(serverType)
 
 	return &sessionclientmodels.ApimodelsCreateConfigurationTemplateRequest{
 		Name: data.Name.ValueStringPointer(),
@@ -145,7 +220,8 @@ func toApiConfigurationTemplate(ctx context.Context, data AccelByteConfiguration
 		LeaderElectionGracePeriod: data.LeaderElectionGracePeriod.ValueInt32(),
 
 		// "General" screen - Server
-		Type: data.ServerType.ValueStringPointer(),
+		Type:     &serverTypeString,
+		DsSource: string(dsSource),
 		// Only used when ServerType = AMS
 		RequestedRegions:   requestedRegions,
 		PreferredClaimKeys: preferredClaimKeys,
@@ -164,23 +240,52 @@ func toApiConfigurationTemplate(ctx context.Context, data AccelByteConfiguration
 
 		// "Custom Attributes" screen
 		Attributes: customAttributesJson,
-	}, nil
+	}, diags, nil
 }
 
-func toApiConfigurationTemplateConfig(ctx context.Context, data AccelByteConfigurationTemplateModel) (*sessionclientmodels.ApimodelsUpdateConfigurationTemplateRequest, error) {
+func toApiConfigurationTemplateConfig(ctx context.Context, data AccelByteConfigurationTemplateModel) (*sessionclientmodels.ApimodelsUpdateConfigurationTemplateRequest, diag.Diagnostics, error) {
 
-	requestedRegions := make([]string, len(data.RequestedRegions.Elements()))
-	_ = data.RequestedRegions.ElementsAs(ctx, &requestedRegions, false)
-	preferredClaimKeys := make([]string, len(data.PreferredClaimKeys.Elements()))
-	_ = data.PreferredClaimKeys.ElementsAs(ctx, &preferredClaimKeys, false)
-	fallbackClaimKeys := make([]string, len(data.FallbackClaimKeys.Elements()))
-	_ = data.FallbackClaimKeys.ElementsAs(ctx, &fallbackClaimKeys, false)
+	var diags diag.Diagnostics = nil
+
+	serverType := AccelByteConfigurationTemplateServerTypeNone
+	dsSource := AccelByteConfigurationTemplateDsSourceNone
+
+	// diags.Append(diag.NewWarningDiagnostic("data.P2pServer value a ", fmt.Sprintf("p2p server is null: %v", data.P2pServer.IsNull())))
+	// diags.Append(diag.NewWarningDiagnostic("data.AmsServer value b ", fmt.Sprintf("ams server is null: %v", data.AmsServer.IsNull())))
+	// diags.Append(diag.NewWarningDiagnostic("data.P2pServer value c ", fmt.Sprintf("p2p server is unknown: %v", data.P2pServer.IsUnknown())))
+	// diags.Append(diag.NewWarningDiagnostic("data.AmsServer value d ", fmt.Sprintf("ams server is unknown: %v", data.AmsServer.IsUnknown())))
+	// return nil, diags, errors.New("abort")
+
+	if !data.P2pServer.IsNull() && !data.P2pServer.IsUnknown() {
+		serverType = AccelByteConfigurationTemplateServerTypeP2P
+	}
+
+	var requestedRegions []string = nil
+	var preferredClaimKeys []string = nil
+	var fallbackClaimKeys []string = nil
+
+	if !data.AmsServer.IsNull() && !data.AmsServer.IsUnknown() {
+		serverType = AccelByteConfigurationTemplateServerTypeAms
+		dsSource = AccelByteConfigurationTemplateDsSourceAms
+
+		var amsServer AccelByteConfigurationTemplateAmsServerModel
+		diags.Append(data.AmsServer.As(ctx, &amsServer, basetypes.ObjectAsOptions{})...)
+
+		requestedRegions = make([]string, len(amsServer.RequestedRegions.Elements()))
+		preferredClaimKeys = make([]string, len(amsServer.PreferredClaimKeys.Elements()))
+		fallbackClaimKeys = make([]string, len(amsServer.FallbackClaimKeys.Elements()))
+		diags.Append(amsServer.RequestedRegions.ElementsAs(ctx, &requestedRegions, false)...)
+		diags.Append(amsServer.PreferredClaimKeys.ElementsAs(ctx, &preferredClaimKeys, false)...)
+		diags.Append(amsServer.FallbackClaimKeys.ElementsAs(ctx, &fallbackClaimKeys, false)...)
+	}
 
 	var customAttributesJson interface{}
 	err := json.Unmarshal([]byte(data.CustomAttributes.ValueString()), &customAttributesJson)
 	if err != nil {
-		return nil, errors.Wrap(err, "Unable to convert Session Template's custom attributes to JSON: "+fmt.Sprintf("%#v", data.CustomAttributes))
+		return nil, diags, errors.Wrap(err, "Unable to convert Session Template's custom attributes to JSON: "+fmt.Sprintf("%#v", data.CustomAttributes))
 	}
+
+	serverTypeString := string(serverType)
 
 	return &sessionclientmodels.ApimodelsUpdateConfigurationTemplateRequest{
 		Name: data.Name.ValueStringPointer(),
@@ -199,7 +304,8 @@ func toApiConfigurationTemplateConfig(ctx context.Context, data AccelByteConfigu
 		LeaderElectionGracePeriod: data.LeaderElectionGracePeriod.ValueInt32(),
 
 		// "General" screen - Server
-		Type: data.ServerType.ValueStringPointer(),
+		Type:     &serverTypeString,
+		DsSource: string(dsSource),
 		// Only used when ServerType = AMS
 		RequestedRegions:   requestedRegions,
 		PreferredClaimKeys: preferredClaimKeys,
@@ -218,5 +324,5 @@ func toApiConfigurationTemplateConfig(ctx context.Context, data AccelByteConfigu
 
 		// "Custom Attributes" screen
 		Attributes: customAttributesJson,
-	}, nil
+	}, diags, nil
 }

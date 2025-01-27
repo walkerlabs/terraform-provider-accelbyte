@@ -95,27 +95,38 @@ func (d *AccelByteConfigurationTemplateDataSource) Schema(ctx context.Context, r
 				Computed:            true,
 			},
 
-			// "General" screen - Server
-			"server_type": schema.StringAttribute{
-				MarkdownDescription: "",
-				Computed:            true,
+			// ServerType = NONE is implied when none of the other server types are specified in the configuration
+
+			// Peer-to-Peer server
+			"p2p_server": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{},
+				Optional:   true,
+				Computed:   true,
 			},
-			// Only used when ServerType = AMS
-			"requested_regions": schema.ListAttribute{
-				ElementType:         types.StringType,
-				MarkdownDescription: "",
-				Computed:            true,
+
+			// AMS server
+			"ams_server": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"requested_regions": schema.ListAttribute{
+						ElementType:         types.StringType,
+						MarkdownDescription: "",
+						Computed:            true,
+					},
+					"preferred_claim_keys": schema.ListAttribute{
+						ElementType:         types.StringType,
+						MarkdownDescription: "",
+						Computed:            true,
+					},
+					"fallback_claim_keys": schema.ListAttribute{
+						ElementType:         types.StringType,
+						MarkdownDescription: "",
+						Computed:            true,
+					},
+				},
+				Optional: true,
+				Computed: true,
 			},
-			"preferred_claim_keys": schema.ListAttribute{
-				ElementType:         types.StringType,
-				MarkdownDescription: "",
-				Computed:            true,
-			},
-			"fallback_claim_keys": schema.ListAttribute{
-				ElementType:         types.StringType,
-				MarkdownDescription: "",
-				Computed:            true,
-			},
+
 			// TODO: support ServerType = CUSTOM
 
 			// "Additional" screen settings
@@ -205,7 +216,8 @@ func (d *AccelByteConfigurationTemplateDataSource) Read(ctx context.Context, req
 		return
 	}
 
-	err = updateFromApiConfigurationTemplate(ctx, &data, configTemplate)
+	diags, err := updateFromApiConfigurationTemplate(ctx, &data, configTemplate)
+	resp.Diagnostics.Append(diags...)
 	if err != nil {
 		resp.Diagnostics.AddError("Error when updating our internal state from the configuration template", fmt.Sprintf("Error: %#v", err))
 		return
