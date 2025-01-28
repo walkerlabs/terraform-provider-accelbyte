@@ -59,24 +59,24 @@ func (p *AccelByteProvider) Schema(ctx context.Context, req provider.SchemaReque
 		Attributes: map[string]schema.Attribute{
 			"base_url": schema.StringAttribute{
 				MarkdownDescription: "URL to AccelByte cluster, typically on the form 'https://<something>.accelbyte.io'",
-				Required:            true,
+				Optional:            true,
 			},
 			"iam_client_id": schema.StringAttribute{
 				MarkdownDescription: "IAM Client ID to use for authentication",
-				Required:            true,
+				Optional:            true,
 			},
 			"iam_client_secret": schema.StringAttribute{
 				MarkdownDescription: "IAM Client Secret to use for authentication",
-				Required:            true,
+				Optional:            true,
 				Sensitive:           true,
 			},
 			"admin_username": schema.StringAttribute{
 				MarkdownDescription: "Admin user email to use for authentication",
-				Required:            true,
+				Optional:            true,
 			},
 			"admin_password": schema.StringAttribute{
 				MarkdownDescription: "Admin user password to use for authentication",
-				Required:            true,
+				Optional:            true,
 				Sensitive:           true,
 			},
 		},
@@ -179,9 +179,9 @@ func (p *AccelByteProvider) Configure(ctx context.Context, req provider.Configur
 	if baseUrl == "" {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("base_url"),
-			"Missing HashiCups API base_url",
-			"The provider cannot create the HashiCups API client as there is a missing or empty value for the HashiCups API base_url. "+
-				"Set the base_url value in the configuration or use the ACCELBYTE_BASE_URL environment variable. "+
+			"Missing AccelByte provider base_url",
+			"The AccelByte provider cannot initialize itself as there is a missing or empty value for base_url. "+
+				"Set the base_url value in the provider configuration or use the ACCELBYTE_BASE_URL environment variable. "+
 				"If either is already set, ensure the value is not empty.",
 		)
 	}
@@ -189,9 +189,9 @@ func (p *AccelByteProvider) Configure(ctx context.Context, req provider.Configur
 	if iamClientId == "" {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("iam_client_id"),
-			"Missing HashiCups API iam_client_id",
-			"The provider cannot create the HashiCups API client as there is a missing or empty value for the HashiCups API iam_client_id. "+
-				"Set the iam_client_id value in the configuration or use the ACCELBYTE_IAM_CLIENT_ID environment variable. "+
+			"Missing AccelByte provider iam_client_id",
+			"The AccelByte provider cannot initialize itself as there is a missing or empty value for iam_client_id. "+
+				"Set the iam_client_id value in the provider configuration or use the ACCELBYTE_IAM_CLIENT_ID environment variable. "+
 				"If either is already set, ensure the value is not empty.",
 		)
 	}
@@ -199,9 +199,9 @@ func (p *AccelByteProvider) Configure(ctx context.Context, req provider.Configur
 	if iamClientSecret == "" {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("iam_client_secret"),
-			"Missing HashiCups API iam_client_secret",
-			"The provider cannot create the HashiCups API client as there is a missing or empty value for the HashiCups API iam_client_secret. "+
-				"Set the iam_client_secret value in the configuration or use the ACCELBYTE_IAM_CLIENT_SECRET environment variable. "+
+			"Missing AccelByte provider iam_client_secret",
+			"The AccelByte provider cannot initialize itself as there is a missing or empty value for iam_client_secret. "+
+				"Set the iam_client_secret value in the provider configuration or use the ACCELBYTE_IAM_CLIENT_SECRET environment variable. "+
 				"If either is already set, ensure the value is not empty.",
 		)
 	}
@@ -209,9 +209,9 @@ func (p *AccelByteProvider) Configure(ctx context.Context, req provider.Configur
 	if adminUsername == "" {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("admin_username"),
-			"Missing HashiCups API admin_username",
-			"The provider cannot create the HashiCups API client as there is a missing or empty value for the HashiCups API admin_username. "+
-				"Set the admin_username value in the configuration or use the ACCELBYTE_ADMIN_USERNAME environment variable. "+
+			"Missing AccelByte provider admin_username",
+			"The AccelByte provider cannot initialize itself as there is a missing or empty value for admin_username. "+
+				"Set the admin_username value in the provider configuration or use the ACCELBYTE_ADMIN_USERNAME environment variable. "+
 				"If either is already set, ensure the value is not empty.",
 		)
 	}
@@ -219,9 +219,9 @@ func (p *AccelByteProvider) Configure(ctx context.Context, req provider.Configur
 	if adminPassword == "" {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("admin_password"),
-			"Missing HashiCups API admin_password",
-			"The provider cannot create the HashiCups API client as there is a missing or empty value for the HashiCups API admin_password. "+
-				"Set the admin_password value in the configuration or use the ACCELBYTE_ADMIN_PASSWORD environment variable. "+
+			"Missing AccelByte provider admin_password",
+			"The AccelByte provider cannot initialize itself as there is a missing or empty value for admin_password. "+
+				"Set the admin_password value in the provider configuration or use the ACCELBYTE_ADMIN_PASSWORD environment variable. "+
 				"If either is already set, ensure the value is not empty.",
 		)
 	}
