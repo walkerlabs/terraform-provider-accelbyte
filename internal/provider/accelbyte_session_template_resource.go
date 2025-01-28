@@ -28,40 +28,40 @@ import (
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
-var _ resource.Resource = &AccelByteConfigurationTemplateResource{}
-var _ resource.ResourceWithImportState = &AccelByteConfigurationTemplateResource{}
+var _ resource.Resource = &AccelByteSessionTemplateResource{}
+var _ resource.ResourceWithImportState = &AccelByteSessionTemplateResource{}
 
-func NewAccelByteConfigurationTemplateResource() resource.Resource {
-	return &AccelByteConfigurationTemplateResource{}
+func NewAccelByteSessionTemplateResource() resource.Resource {
+	return &AccelByteSessionTemplateResource{}
 }
 
-// AccelByteConfigurationTemplateResource defines the resource implementation.
-type AccelByteConfigurationTemplateResource struct {
+// AccelByteSessionTemplateResource defines the resource implementation.
+type AccelByteSessionTemplateResource struct {
 	client *session.ConfigurationTemplateService
 }
 
-func (r *AccelByteConfigurationTemplateResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_configuration_template"
+func (r *AccelByteSessionTemplateResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_session_template"
 }
 
-func (r *AccelByteConfigurationTemplateResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *AccelByteSessionTemplateResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "AccelByte Configuration Template resource",
+		MarkdownDescription: "AccelByte Session Template resource",
 
 		Attributes: map[string]schema.Attribute{
 
 			// Must be set by user; the ID is derived from these
 
 			"namespace": schema.StringAttribute{
-				MarkdownDescription: "Game Namespace which contains the configuration template",
+				MarkdownDescription: "Game Namespace which contains the session template",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"name": schema.StringAttribute{
-				MarkdownDescription: "Name of configuration template",
+				MarkdownDescription: "Name of session template",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -71,7 +71,7 @@ func (r *AccelByteConfigurationTemplateResource) Schema(ctx context.Context, req
 			// Computed during Read() operation
 
 			"id": schema.StringAttribute{
-				MarkdownDescription: "Configuration template identifier",
+				MarkdownDescription: "Session template identifier",
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
@@ -256,7 +256,7 @@ func (r *AccelByteConfigurationTemplateResource) Schema(ctx context.Context, req
 	}
 }
 
-func (r *AccelByteConfigurationTemplateResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *AccelByteSessionTemplateResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
@@ -276,8 +276,8 @@ func (r *AccelByteConfigurationTemplateResource) Configure(ctx context.Context, 
 	r.client = clients.SessionConfigurationTemplateService
 }
 
-func (r *AccelByteConfigurationTemplateResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data AccelByteConfigurationTemplateModel
+func (r *AccelByteSessionTemplateResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data AccelByteSessionTemplateModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -286,31 +286,31 @@ func (r *AccelByteConfigurationTemplateResource) Create(ctx context.Context, req
 		return
 	}
 
-	data.Id = types.StringValue(computeConfigurationTemplateId(data.Namespace.ValueString(), data.Name.ValueString()))
+	data.Id = types.StringValue(computeSessionTemplateId(data.Namespace.ValueString(), data.Name.ValueString()))
 
-	apiConfigurationTemplate, diags, err := toApiConfigurationTemplate(ctx, data)
+	apiSessionTemplate, diags, err := toApiSessionTemplate(ctx, data)
 	resp.Diagnostics.Append(diags...)
 	if err != nil {
-		resp.Diagnostics.AddError("Error when converting our internal state to an AccelByte API configuration template", fmt.Sprintf("Error: %#v", err))
+		resp.Diagnostics.AddError("Error when converting our internal state to an AccelByte API session template", fmt.Sprintf("Error: %#v", err))
 		return
 	}
 
 	input := &configuration_template.AdminCreateConfigurationTemplateV1Params{
 		Namespace: data.Namespace.ValueString(),
-		Body:      apiConfigurationTemplate,
+		Body:      apiSessionTemplate,
 	}
 
 	configurationTemplate, err := r.client.AdminCreateConfigurationTemplateV1Short(input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error when accessing AccelByte API", fmt.Sprintf("Unable to create new AccelByte configuration template in namespace '%s', name '%s', got error: %s", input.Namespace, input.Body.Name, err))
+		resp.Diagnostics.AddError("Error when accessing AccelByte API", fmt.Sprintf("Unable to create new AccelByte session template in namespace '%s', name '%s', got error: %s", input.Namespace, input.Body.Name, err))
 		return
 	}
 
-	updateFromApiConfigurationTemplate(ctx, &data, configurationTemplate)
+	updateFromApiSessionTemplate(ctx, &data, configurationTemplate)
 
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log
-	tflog.Trace(ctx, "Created an AccelByteConfigurationTemplateResource", map[string]interface{}{
+	tflog.Trace(ctx, "Created an AccelByteSessionTemplateResource", map[string]interface{}{
 		"namespace": data.Namespace,
 		"name":      data.Name.ValueString(),
 	})
@@ -319,8 +319,8 @@ func (r *AccelByteConfigurationTemplateResource) Create(ctx context.Context, req
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *AccelByteConfigurationTemplateResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data AccelByteConfigurationTemplateModel
+func (r *AccelByteSessionTemplateResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data AccelByteSessionTemplateModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -335,15 +335,15 @@ func (r *AccelByteConfigurationTemplateResource) Read(ctx context.Context, req r
 	}
 	configTemplate, err := r.client.AdminGetConfigurationTemplateV1Short(&input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error when accessing AccelByte API", fmt.Sprintf("Unable to read info on AccelByte configuration template from namespace '%s' name '%s', got error: %s", input.Namespace, input.Name, err))
+		resp.Diagnostics.AddError("Error when accessing AccelByte API", fmt.Sprintf("Unable to read info on AccelByte session template from namespace '%s' name '%s', got error: %s", input.Namespace, input.Name, err))
 		return
 	}
 
-	updateFromApiConfigurationTemplate(ctx, &data, configTemplate)
+	updateFromApiSessionTemplate(ctx, &data, configTemplate)
 
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log
-	tflog.Trace(ctx, "Read AccelByteConfigurationTemplateResource from AccelByte API", map[string]interface{}{
+	tflog.Trace(ctx, "Read AccelByteSessionTemplateResource from AccelByte API", map[string]interface{}{
 		"namespace": data.Namespace,
 		"name":      data.Name.ValueString(),
 	})
@@ -352,8 +352,8 @@ func (r *AccelByteConfigurationTemplateResource) Read(ctx context.Context, req r
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *AccelByteConfigurationTemplateResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data AccelByteConfigurationTemplateModel
+func (r *AccelByteSessionTemplateResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data AccelByteSessionTemplateModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -362,33 +362,33 @@ func (r *AccelByteConfigurationTemplateResource) Update(ctx context.Context, req
 		return
 	}
 
-	apiConfigurationTemplateConfig, diagnostics, err := toApiConfigurationTemplateConfig(ctx, data)
+	apiSessionTemplateConfig, diagnostics, err := toApiSessionTemplateConfig(ctx, data)
 	resp.Diagnostics.Append(diagnostics...)
 	if err != nil {
-		resp.Diagnostics.AddError("Error when converting our internal state to an AccelByte API configuration template config", fmt.Sprintf("Error: %#v", err))
+		resp.Diagnostics.AddError("Error when converting our internal state to an AccelByte API session template config", fmt.Sprintf("Error: %#v", err))
 		return
 	}
 
 	input := &configuration_template.AdminUpdateConfigurationTemplateV1Params{
 		Namespace: data.Namespace.ValueString(),
 		Name:      data.Name.ValueString(),
-		Body:      apiConfigurationTemplateConfig,
+		Body:      apiSessionTemplateConfig,
 	}
 
-	apiConfigurationTemplate, err := r.client.AdminUpdateConfigurationTemplateV1Short(input)
+	apiSessionTemplate, err := r.client.AdminUpdateConfigurationTemplateV1Short(input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error when accessing AccelByte API", fmt.Sprintf("Unable to update AccelByte configuration template in namespace '%s', name '%s', got error: %s", input.Namespace, input.Name, err))
+		resp.Diagnostics.AddError("Error when accessing AccelByte API", fmt.Sprintf("Unable to update AccelByte session template in namespace '%s', name '%s', got error: %s", input.Namespace, input.Name, err))
 		return
 	}
 
-	updateFromApiConfigurationTemplate(ctx, &data, apiConfigurationTemplate)
+	updateFromApiSessionTemplate(ctx, &data, apiSessionTemplate)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *AccelByteConfigurationTemplateResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data AccelByteConfigurationTemplateModel
+func (r *AccelByteSessionTemplateResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data AccelByteSessionTemplateModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -403,11 +403,11 @@ func (r *AccelByteConfigurationTemplateResource) Delete(ctx context.Context, req
 	}
 	err := r.client.AdminDeleteConfigurationTemplateV1Short(input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error when accessing AccelByte API", fmt.Sprintf("Unable to delete AccelByte configuration template in namespace '%s', name '%s', got error: %s", input.Namespace, input.Name, err))
+		resp.Diagnostics.AddError("Error when accessing AccelByte API", fmt.Sprintf("Unable to delete AccelByte session template in namespace '%s', name '%s', got error: %s", input.Namespace, input.Name, err))
 		return
 	}
 }
 
-func (r *AccelByteConfigurationTemplateResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *AccelByteSessionTemplateResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }

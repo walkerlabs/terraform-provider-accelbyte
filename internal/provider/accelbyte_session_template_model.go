@@ -16,8 +16,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// AccelByteConfigurationTemplateModel is shared between AccelByteConfigurationTemplateDataSource and AccelByteConfigurationTemplateResource
-type AccelByteConfigurationTemplateModel struct {
+// AccelByteSessionTemplateModel is shared between AccelByteSessionTemplateDataSource and AccelByteSessionTemplateResource
+type AccelByteSessionTemplateModel struct {
 	// Populated by user
 	Namespace types.String `tfsdk:"namespace"`
 	Name      types.String `tfsdk:"name"`
@@ -46,9 +46,9 @@ type AccelByteConfigurationTemplateModel struct {
 	LeaderElectionGracePeriod types.Int32 `tfsdk:"leader_election_grace_period"`
 
 	// Only one of these should exist at a time
-	P2pServer    types.Object `tfsdk:"p2p_server"`    // AccelByteConfigurationTemplateP2pServerModel
-	AmsServer    types.Object `tfsdk:"ams_server"`    // AccelByteConfigurationTemplateAmsServerModel
-	CustomServer types.Object `tfsdk:"custom_server"` // AccelByteConfigurationTemplateCustomServerModel
+	P2pServer    types.Object `tfsdk:"p2p_server"`    // AccelByteSessionTemplateP2pServerModel
+	AmsServer    types.Object `tfsdk:"ams_server"`    // AccelByteSessionTemplateAmsServerModel
+	CustomServer types.Object `tfsdk:"custom_server"` // AccelByteSessionTemplateCustomServerModel
 
 	// "Additional" screen settings
 	AutoJoinSession          types.Bool `tfsdk:"auto_join_session"`
@@ -66,50 +66,50 @@ type AccelByteConfigurationTemplateModel struct {
 	CustomAttributes types.String `tfsdk:"custom_attributes"`
 }
 
-type AccelByteConfigurationTemplateP2pServerModel struct {
+type AccelByteSessionTemplateP2pServerModel struct {
 }
 
-var AccelByteConfigurationTemplateP2pServerModelAttributeTypes = map[string]attr.Type{}
+var AccelByteSessionTemplateP2pServerModelAttributeTypes = map[string]attr.Type{}
 
-type AccelByteConfigurationTemplateAmsServerModel struct {
+type AccelByteSessionTemplateAmsServerModel struct {
 	RequestedRegions   types.List `tfsdk:"requested_regions"`
 	PreferredClaimKeys types.List `tfsdk:"preferred_claim_keys"`
 	FallbackClaimKeys  types.List `tfsdk:"fallback_claim_keys"`
 }
 
-var AccelByteConfigurationTemplateAmsServerModelAttributeTypes = map[string]attr.Type{
+var AccelByteSessionTemplateAmsServerModelAttributeTypes = map[string]attr.Type{
 	"requested_regions":    types.ListType{}.WithElementType(types.StringType),
 	"preferred_claim_keys": types.ListType{}.WithElementType(types.StringType),
 	"fallback_claim_keys":  types.ListType{}.WithElementType(types.StringType),
 }
 
-type AccelByteConfigurationTemplateCustomServerModel struct {
+type AccelByteSessionTemplateCustomServerModel struct {
 	CustomUrl types.String `tfsdk:"custom_url"`
 	ExtendApp types.String `tfsdk:"extend_app"`
 }
 
-var AccelByteConfigurationTemplateCustomServerModelAttributeTypes = map[string]attr.Type{
+var AccelByteSessionTemplateCustomServerModelAttributeTypes = map[string]attr.Type{
 	"custom_url": types.StringType,
 	"extend_app": types.StringType,
 }
 
-type AccelByteConfigurationTemplateServerType string
+type AccelByteSessionTemplateServerType string
 
 const (
-	AccelByteConfigurationTemplateServerTypeNone AccelByteConfigurationTemplateServerType = "NONE"
-	AccelByteConfigurationTemplateServerTypeP2P  AccelByteConfigurationTemplateServerType = "P2P"
-	AccelByteConfigurationTemplateServerTypeDS   AccelByteConfigurationTemplateServerType = "DS"
+	AccelByteSessionTemplateServerTypeNone AccelByteSessionTemplateServerType = "NONE"
+	AccelByteSessionTemplateServerTypeP2P  AccelByteSessionTemplateServerType = "P2P"
+	AccelByteSessionTemplateServerTypeDS   AccelByteSessionTemplateServerType = "DS"
 )
 
-type AccelByteConfigurationTemplateDsSourceType string
+type AccelByteSessionTemplateDsSourceType string
 
 const (
-	AccelByteConfigurationTemplateDsSourceNone   AccelByteConfigurationTemplateDsSourceType = ""
-	AccelByteConfigurationTemplateDsSourceAms    AccelByteConfigurationTemplateDsSourceType = "AMS"
-	AccelByteConfigurationTemplateDsSourceCustom AccelByteConfigurationTemplateDsSourceType = "custom"
+	AccelByteSessionTemplateDsSourceNone   AccelByteSessionTemplateDsSourceType = ""
+	AccelByteSessionTemplateDsSourceAms    AccelByteSessionTemplateDsSourceType = "AMS"
+	AccelByteSessionTemplateDsSourceCustom AccelByteSessionTemplateDsSourceType = "custom"
 )
 
-func updateFromApiConfigurationTemplate(ctx context.Context, data *AccelByteConfigurationTemplateModel, configurationTemplate *sessionclientmodels.ApimodelsConfigurationTemplateResponse) (diag.Diagnostics, error) {
+func updateFromApiSessionTemplate(ctx context.Context, data *AccelByteSessionTemplateModel, configurationTemplate *sessionclientmodels.ApimodelsConfigurationTemplateResponse) (diag.Diagnostics, error) {
 
 	var diags diag.Diagnostics = nil
 
@@ -129,15 +129,15 @@ func updateFromApiConfigurationTemplate(ctx context.Context, data *AccelByteConf
 	// "General" screen - Server
 	serverType := types.StringValue(*configurationTemplate.Type).ValueString()
 	dsSource := types.StringValue(configurationTemplate.DsSource).ValueString()
-	data.P2pServer = basetypes.NewObjectNull(AccelByteConfigurationTemplateP2pServerModelAttributeTypes)
-	data.AmsServer = basetypes.NewObjectNull(AccelByteConfigurationTemplateAmsServerModelAttributeTypes)
-	data.CustomServer = basetypes.NewObjectNull(AccelByteConfigurationTemplateCustomServerModelAttributeTypes)
+	data.P2pServer = basetypes.NewObjectNull(AccelByteSessionTemplateP2pServerModelAttributeTypes)
+	data.AmsServer = basetypes.NewObjectNull(AccelByteSessionTemplateAmsServerModelAttributeTypes)
+	data.CustomServer = basetypes.NewObjectNull(AccelByteSessionTemplateCustomServerModelAttributeTypes)
 
-	if serverType == string(AccelByteConfigurationTemplateServerTypeP2P) {
-		p2pServer, p2pServerDiags := basetypes.NewObjectValueFrom(ctx, AccelByteConfigurationTemplateP2pServerModelAttributeTypes, AccelByteConfigurationTemplateP2pServerModel{})
+	if serverType == string(AccelByteSessionTemplateServerTypeP2P) {
+		p2pServer, p2pServerDiags := basetypes.NewObjectValueFrom(ctx, AccelByteSessionTemplateP2pServerModelAttributeTypes, AccelByteSessionTemplateP2pServerModel{})
 		data.P2pServer = p2pServer
 		diags.Append(p2pServerDiags...)
-	} else if serverType == string(AccelByteConfigurationTemplateServerTypeDS) && dsSource == string(AccelByteConfigurationTemplateDsSourceAms) {
+	} else if serverType == string(AccelByteSessionTemplateServerTypeDS) && dsSource == string(AccelByteSessionTemplateDsSourceAms) {
 		requestedRegions, requestedRegionsDiags := types.ListValueFrom(ctx, types.StringType, configurationTemplate.RequestedRegions)
 		diags.Append(requestedRegionsDiags...)
 		preferredClaimKeys, preferredClaimKeysDiags := types.ListValueFrom(ctx, types.StringType, configurationTemplate.PreferredClaimKeys)
@@ -145,23 +145,23 @@ func updateFromApiConfigurationTemplate(ctx context.Context, data *AccelByteConf
 		fallbackClaimKeys, fallbackClaimKeysDiags := types.ListValueFrom(ctx, types.StringType, configurationTemplate.FallbackClaimKeys)
 		diags.Append(fallbackClaimKeysDiags...)
 
-		amsServerModel := &AccelByteConfigurationTemplateAmsServerModel{
+		amsServerModel := &AccelByteSessionTemplateAmsServerModel{
 			RequestedRegions:   requestedRegions,
 			PreferredClaimKeys: preferredClaimKeys,
 			FallbackClaimKeys:  fallbackClaimKeys,
 		}
 
-		amsServer, amsServerDiags := basetypes.NewObjectValueFrom(ctx, AccelByteConfigurationTemplateAmsServerModelAttributeTypes, amsServerModel)
+		amsServer, amsServerDiags := basetypes.NewObjectValueFrom(ctx, AccelByteSessionTemplateAmsServerModelAttributeTypes, amsServerModel)
 		data.AmsServer = amsServer
 		diags.Append(amsServerDiags...)
-	} else if serverType == string(AccelByteConfigurationTemplateServerTypeDS) && dsSource == string(AccelByteConfigurationTemplateDsSourceCustom) {
+	} else if serverType == string(AccelByteSessionTemplateServerTypeDS) && dsSource == string(AccelByteSessionTemplateDsSourceCustom) {
 
-		customServerModel := &AccelByteConfigurationTemplateCustomServerModel{
+		customServerModel := &AccelByteSessionTemplateCustomServerModel{
 			CustomUrl: types.StringValue(configurationTemplate.CustomURLGRPC),
 			ExtendApp: types.StringValue(configurationTemplate.AppName),
 		}
 
-		customServer, customServerDiags := basetypes.NewObjectValueFrom(ctx, AccelByteConfigurationTemplateCustomServerModelAttributeTypes, customServerModel)
+		customServer, customServerDiags := basetypes.NewObjectValueFrom(ctx, AccelByteSessionTemplateCustomServerModelAttributeTypes, customServerModel)
 		data.CustomServer = customServer
 		diags.Append(customServerDiags...)
 	}
@@ -179,24 +179,24 @@ func updateFromApiConfigurationTemplate(ctx context.Context, data *AccelByteConf
 	// "Custom Attributes" screen
 	customAttributesJson, err := json.Marshal(configurationTemplate.Attributes)
 	if err != nil {
-		return diags, errors.Wrap(err, "Unable to convert API's Configuration Template's custom attributes to JSON: "+fmt.Sprintf("%#v", configurationTemplate.Attributes))
+		return diags, errors.Wrap(err, "Unable to convert API's Session Template's custom attributes to JSON: "+fmt.Sprintf("%#v", configurationTemplate.Attributes))
 	}
 
 	data.CustomAttributes = types.StringValue(string(customAttributesJson))
 	return diags, nil
 }
 
-func toApiConfigurationTemplate(ctx context.Context, data AccelByteConfigurationTemplateModel) (*sessionclientmodels.ApimodelsCreateConfigurationTemplateRequest, diag.Diagnostics, error) {
+func toApiSessionTemplate(ctx context.Context, data AccelByteSessionTemplateModel) (*sessionclientmodels.ApimodelsCreateConfigurationTemplateRequest, diag.Diagnostics, error) {
 
 	var diags diag.Diagnostics = nil
 
-	serverType := AccelByteConfigurationTemplateServerTypeNone
-	dsSource := AccelByteConfigurationTemplateDsSourceNone
+	serverType := AccelByteSessionTemplateServerTypeNone
+	dsSource := AccelByteSessionTemplateDsSourceNone
 
 	// Handle P2P server
 
 	if !data.P2pServer.IsNull() && !data.P2pServer.IsUnknown() {
-		serverType = AccelByteConfigurationTemplateServerTypeP2P
+		serverType = AccelByteSessionTemplateServerTypeP2P
 	}
 
 	// Handle AMS server
@@ -206,10 +206,10 @@ func toApiConfigurationTemplate(ctx context.Context, data AccelByteConfiguration
 	var fallbackClaimKeys []string = nil
 
 	if !data.AmsServer.IsNull() && !data.AmsServer.IsUnknown() {
-		serverType = AccelByteConfigurationTemplateServerTypeDS
-		dsSource = AccelByteConfigurationTemplateDsSourceAms
+		serverType = AccelByteSessionTemplateServerTypeDS
+		dsSource = AccelByteSessionTemplateDsSourceAms
 
-		var amsServer AccelByteConfigurationTemplateAmsServerModel
+		var amsServer AccelByteSessionTemplateAmsServerModel
 		diags.Append(data.AmsServer.As(ctx, &amsServer, basetypes.ObjectAsOptions{})...)
 
 		requestedRegions = make([]string, len(amsServer.RequestedRegions.Elements()))
@@ -226,10 +226,10 @@ func toApiConfigurationTemplate(ctx context.Context, data AccelByteConfiguration
 	appName := ""
 
 	if !data.CustomServer.IsNull() && !data.CustomServer.IsUnknown() {
-		serverType = AccelByteConfigurationTemplateServerTypeDS
-		dsSource = AccelByteConfigurationTemplateDsSourceCustom
+		serverType = AccelByteSessionTemplateServerTypeDS
+		dsSource = AccelByteSessionTemplateDsSourceCustom
 
-		var customServer AccelByteConfigurationTemplateCustomServerModel
+		var customServer AccelByteSessionTemplateCustomServerModel
 		diags.Append(data.CustomServer.As(ctx, &customServer, basetypes.ObjectAsOptions{})...)
 
 		customUrlGrpc = customServer.CustomUrl.ValueString()
@@ -286,17 +286,17 @@ func toApiConfigurationTemplate(ctx context.Context, data AccelByteConfiguration
 	}, diags, nil
 }
 
-func toApiConfigurationTemplateConfig(ctx context.Context, data AccelByteConfigurationTemplateModel) (*sessionclientmodels.ApimodelsUpdateConfigurationTemplateRequest, diag.Diagnostics, error) {
+func toApiSessionTemplateConfig(ctx context.Context, data AccelByteSessionTemplateModel) (*sessionclientmodels.ApimodelsUpdateConfigurationTemplateRequest, diag.Diagnostics, error) {
 
 	var diags diag.Diagnostics = nil
 
-	serverType := AccelByteConfigurationTemplateServerTypeNone
-	dsSource := AccelByteConfigurationTemplateDsSourceNone
+	serverType := AccelByteSessionTemplateServerTypeNone
+	dsSource := AccelByteSessionTemplateDsSourceNone
 
 	// Handle P2P server
 
 	if !data.P2pServer.IsNull() && !data.P2pServer.IsUnknown() {
-		serverType = AccelByteConfigurationTemplateServerTypeP2P
+		serverType = AccelByteSessionTemplateServerTypeP2P
 	}
 
 	// Handle AMS server
@@ -306,10 +306,10 @@ func toApiConfigurationTemplateConfig(ctx context.Context, data AccelByteConfigu
 	var fallbackClaimKeys []string = nil
 
 	if !data.AmsServer.IsNull() && !data.AmsServer.IsUnknown() {
-		serverType = AccelByteConfigurationTemplateServerTypeDS
-		dsSource = AccelByteConfigurationTemplateDsSourceAms
+		serverType = AccelByteSessionTemplateServerTypeDS
+		dsSource = AccelByteSessionTemplateDsSourceAms
 
-		var amsServer AccelByteConfigurationTemplateAmsServerModel
+		var amsServer AccelByteSessionTemplateAmsServerModel
 		diags.Append(data.AmsServer.As(ctx, &amsServer, basetypes.ObjectAsOptions{})...)
 
 		requestedRegions = make([]string, len(amsServer.RequestedRegions.Elements()))
@@ -326,10 +326,10 @@ func toApiConfigurationTemplateConfig(ctx context.Context, data AccelByteConfigu
 	appName := ""
 
 	if !data.CustomServer.IsNull() && !data.CustomServer.IsUnknown() {
-		serverType = AccelByteConfigurationTemplateServerTypeDS
-		dsSource = AccelByteConfigurationTemplateDsSourceCustom
+		serverType = AccelByteSessionTemplateServerTypeDS
+		dsSource = AccelByteSessionTemplateDsSourceCustom
 
-		var customServer AccelByteConfigurationTemplateCustomServerModel
+		var customServer AccelByteSessionTemplateCustomServerModel
 		diags.Append(data.CustomServer.As(ctx, &customServer, basetypes.ObjectAsOptions{})...)
 
 		customUrlGrpc = customServer.CustomUrl.ValueString()

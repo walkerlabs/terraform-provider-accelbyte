@@ -317,7 +317,7 @@ func (p *AccelByteProvider) Configure(ctx context.Context, req provider.Configur
 func (p *AccelByteProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewAccelByteMatchPoolResource,
-		NewAccelByteConfigurationTemplateResource,
+		NewAccelByteSessionTemplateResource,
 	}
 }
 
@@ -330,7 +330,7 @@ func (p *AccelByteProvider) EphemeralResources(ctx context.Context) []func() eph
 func (p *AccelByteProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		NewAccelByteMatchPoolDataSource,
-		NewAccelByteConfigurationTemplateDataSource,
+		NewAccelByteSessionTemplateDataSource,
 	}
 }
 
