@@ -280,31 +280,6 @@ func (p *AccelByteProvider) Configure(ctx context.Context, req provider.Configur
 		TokenRepository: tokenRepository,
 	}
 
-	/*
-		match2PoolsService := &match2.MatchPoolsService{
-			Client:          factory.NewMatch2Client(&configRepository),
-			TokenRepository: tokenRepository,
-		}
-
-		input := &match_pools.MatchPoolListParams{
-			Namespace: "alaraprime",
-		}
-		result, err := match2PoolsService.MatchPoolListShort(input)
-
-		if err != nil {
-			resp.Diagnostics.AddError(
-				"Unable to get match pools",
-				"Unable to get match pools:"+err.Error(),
-			)
-			return
-		}
-
-		resp.Diagnostics.AddError(
-			"got match pools!",
-			"got match pools: "+strconv.Itoa(len(result.Data)),
-		)
-	*/
-
 	clients := &AccelByteProviderClients{
 		Match2PoolsService:                  match2PoolsService,
 		SessionConfigurationTemplateService: sessionConfigurationTemplateService,
