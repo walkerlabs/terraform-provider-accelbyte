@@ -1,7 +1,7 @@
 dario.cat/mergo v1.0.0 h1:AGCNq9Evsj31mOgNPcLyXc+4PNABt905YmuqPYYpBWk=
 dario.cat/mergo v1.0.0/go.mod h1:uNxQE+84aUszobStD9th8a29P2fMDhsBdgRYvZOxGmk=
-github.com/AccelByte/accelbyte-go-sdk v0.76.0 h1:vm+3zR4PxRWO1pBtQA3KYED5Pi5MvHZ4JfArlsqJmMk=
-github.com/AccelByte/accelbyte-go-sdk v0.76.0/go.mod h1:HIJ6Oht5oQEmxiTJ52GQ+g1KUL8AoiXSBuk6JJTcMaU=
+github.com/AccelByte/accelbyte-go-sdk v0.76.1 h1:H0+ukK50EjFtfnCn9i1QAkTba1JgQ9SNhT3lqu3z7Og=
+github.com/AccelByte/accelbyte-go-sdk v0.76.1/go.mod h1:HIJ6Oht5oQEmxiTJ52GQ+g1KUL8AoiXSBuk6JJTcMaU=
 github.com/AccelByte/bloom v0.0.0-20180915202807-98c052463922 h1:3v15CkYPdxShj9tisD+pU4YihvQCPUISwFrandjwq5A=
 github.com/AccelByte/bloom v0.0.0-20180915202807-98c052463922/go.mod h1:njjI8ZR5oAhtMq8ODchl6GBz8enKQJt+D9WqLn96hLI=
 github.com/AccelByte/go-jose v2.1.4+incompatible h1:jn3BJ0HZAUskWJ042CJGgFXDAwhTsEkOKCX0DIZ5OcQ=
