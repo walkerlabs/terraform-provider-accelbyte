@@ -269,8 +269,7 @@ func (d *AccelByteSessionTemplateDataSource) Read(ctx context.Context, req datas
 		notFoundError := &configuration_template.AdminGetConfigurationTemplateV1NotFound{}
 		if errors.As(err, &notFoundError) {
 			// The data source does not exist in the AccelByte backend
-			// Ensure that it does not exist in the Terraform state either
-			// This not an error condition; Terraform will proceed assuming that the data source does not exist in the backend
+			// This is an actual error; do not update Terraform state, and signal an error to Terraform
 			resp.Diagnostics.AddError("Data source not found", fmt.Sprintf("Session template '%s' does not exist in namespace '%s'", input.Name, input.Namespace))
 			return
 		} else {

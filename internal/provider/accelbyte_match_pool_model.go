@@ -43,6 +43,8 @@ type AccelByteMatchPoolModel struct {
 // 	Validation      []types.String `tfsdk:"validation"`       // optional
 // }
 
+// Used by Create, Read and Update operations on Match Pools
+// This copies data from the AccelByte API `pool` to the TF state `data`
 func updateFromApiMatchPool(data *AccelByteMatchPoolModel, pool *match2clientmodels.APIMatchPool) {
 	data.AutoAcceptBackfillProposal = types.BoolValue(*pool.AutoAcceptBackfillProposal)
 	data.BackfillProposalExpirationSeconds = types.Int32Value(*pool.BackfillProposalExpirationSeconds)
@@ -63,6 +65,8 @@ func updateFromApiMatchPool(data *AccelByteMatchPoolModel, pool *match2clientmod
 	data.TicketExpirationSeconds = types.Int32Value(*pool.TicketExpirationSeconds)
 }
 
+// Used by Create operations on Match Pools
+// This reads from the TF state `data` and returns an AccelByte API object
 func toApiMatchPool(data AccelByteMatchPoolModel) *match2clientmodels.APIMatchPool {
 	return &match2clientmodels.APIMatchPool{
 		AutoAcceptBackfillProposal:        data.AutoAcceptBackfillProposal.ValueBoolPointer(),
@@ -80,6 +84,8 @@ func toApiMatchPool(data AccelByteMatchPoolModel) *match2clientmodels.APIMatchPo
 	}
 }
 
+// Used by Update operations on Match Pools
+// This reads from the TF state `data` and returns an AccelByte API object
 func toApiMatchPoolConfig(data AccelByteMatchPoolModel) *match2clientmodels.APIMatchPoolConfig {
 	return &match2clientmodels.APIMatchPoolConfig{
 		AutoAcceptBackfillProposal:        data.AutoAcceptBackfillProposal.ValueBoolPointer(),

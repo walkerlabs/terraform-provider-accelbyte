@@ -6,6 +6,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/AccelByte/accelbyte-go-sdk/match2-sdk/pkg/match2client/match_pools"
 	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/service/match2"
@@ -148,18 +149,29 @@ func (d *AccelByteMatchPoolDataSource) Read(ctx context.Context, req datasource.
 	}
 	pool, err := d.client.MatchPoolDetailsShort(&input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error when accessing AccelByte API", fmt.Sprintf("Unable to read info on AccelByte match pool from namespace '%s' name '%s', got error: %s", input.Namespace, input.Pool, err))
-		return
+		// TODO: once the AccelByte SDK introduces match_pools.MatchPoolDetailsNotFound, we should use the following logic to detect API "not found" errors:
+		// notFoundError := &match_pools.MatchPoolDetailsNotFound{}
+		// if errors.As(err, &notFoundError) {
+		if strings.Contains(err.Error(), "error 404:") {
+			// The data source does not exist in the AccelByte backend
+			// This is an actual error; do not update Terraform state, and signal an error to Terraform
+			resp.Diagnostics.AddError("Data source not found", fmt.Sprintf("Match pool '%s' does not exist in namespace '%s'", input.Pool, input.Namespace))
+			return
+		} else {
+			// Failed to retrieve the data source from the AccelByte backend
+			// This is an actual error; do not update Terraform state, and signal an error to Terraform
+			resp.Diagnostics.AddError("Error when reading match pool via AccelByte API", fmt.Sprintf("Unable to read match pool '%s' in namespace '%s', got error: %s", input.Pool, input.Namespace, err))
+			return
+		}
 	}
 
-	updateFromApiMatchPool(&data, pool)
-
-	// Write logs using the tflog package
-	// Documentation: https://terraform.io/plugin/log
-	tflog.Trace(ctx, "Read AccelByteMatchPoolDataSource from AccelByte API", map[string]interface{}{
+	tflog.Trace(ctx, "Read match pool from AccelByte API", map[string]interface{}{
 		"namespace": data.Namespace,
 		"name":      data.Name.ValueString(),
+		"pool":      pool,
 	})
+
+	updateFromApiMatchPool(&data, pool)
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

@@ -5,7 +5,9 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/AccelByte/accelbyte-go-sdk/match2-sdk/pkg/match2client/match_pools"
 	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/service/match2"
@@ -164,14 +166,22 @@ func (r *AccelByteMatchPoolResource) Create(ctx context.Context, req resource.Cr
 
 	// Create pool
 
+	apiMatchPool := toApiMatchPool(data)
+
+	tflog.Trace(ctx, "Creating match pool via AccelByte API", map[string]interface{}{
+		"namespace":    data.Namespace,
+		"name":         data.Name.ValueString(),
+		"apiMatchPool": apiMatchPool,
+	})
+
 	createInput := &match_pools.CreateMatchPoolParams{
 		Namespace: data.Namespace.ValueString(),
-		Body:      toApiMatchPool(data),
+		Body:      apiMatchPool,
 	}
 
 	err := r.client.CreateMatchPoolShort(createInput)
 	if err != nil {
-		resp.Diagnostics.AddError("Error when accessing AccelByte API", fmt.Sprintf("Unable to create new AccelByte match pool in namespace '%s', name '%s', got error: %s", createInput.Namespace, createInput.Body.Name, err))
+		resp.Diagnostics.AddError("Error when creating match pool via AccelByte API", fmt.Sprintf("Unable to create match pool '%s' in namespace '%s', got error: %s", apiMatchPool.Name, createInput.Namespace, err))
 		return
 	}
 
@@ -183,20 +193,19 @@ func (r *AccelByteMatchPoolResource) Create(ctx context.Context, req resource.Cr
 	}
 	pool, err := r.client.MatchPoolDetailsShort(&readInput)
 	if err != nil {
-		resp.Diagnostics.AddError("Error when accessing AccelByte API", fmt.Sprintf("Unable to read info on AccelByte match pool from namespace '%s' name '%s', got error: %s", readInput.Namespace, readInput.Pool, err))
+		resp.Diagnostics.AddError("Error when reading match pool via AccelByte API", fmt.Sprintf("Unable to match pool template '%s' in namespace '%s', got error: %s", readInput.Pool, readInput.Namespace, err))
 		return
 	}
+
+	tflog.Trace(ctx, "Read match pool from AccelByte API", map[string]interface{}{
+		"namespace": readInput.Namespace,
+		"name":      readInput.Pool,
+		"pool":      pool,
+	})
 
 	// Reflect new pool from API into our model
 
 	updateFromApiMatchPool(&data, pool)
-
-	// Write logs using the tflog package
-	// Documentation: https://terraform.io/plugin/log
-	tflog.Trace(ctx, "Created an AccelByteMatchPoolDataSource", map[string]interface{}{
-		"namespace": data.Namespace,
-		"name":      data.Name.ValueString(),
-	})
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -218,8 +227,21 @@ func (r *AccelByteMatchPoolResource) Read(ctx context.Context, req resource.Read
 	}
 	pool, err := r.client.MatchPoolDetailsShort(&input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error when accessing AccelByte API", fmt.Sprintf("Unable to read info on AccelByte match pool from namespace '%s' name '%s', got error: %s", input.Namespace, input.Pool, err))
-		return
+		// TODO: once the AccelByte SDK introduces match_pools.MatchPoolDetailsNotFound, we should use the following logic to detect API "not found" errors:
+		// notFoundError := &match_pools.MatchPoolDetailsNotFound{}
+		// if errors.As(err, &notFoundError) {
+		if strings.Contains(err.Error(), "error 404:") {
+			// The resource does not exist in the AccelByte backend
+			// Ensure that it does not exist in the Terraform state either
+			// This not an error condition; Terraform will proceed assuming that the resource does not exist in the backend
+			resp.State.RemoveResource(ctx)
+			return
+		} else {
+			// Failed to retrieve the resource from the AccelByte backend
+			// This is an actual error; do not update Terraform state, and signal an error to Terraform
+			resp.Diagnostics.AddError("Error when reading match pool via AccelByte API", fmt.Sprintf("Unable to read match template '%s' in namespace '%s', got error: %s", input.Pool, input.Namespace, err))
+			return
+		}
 	}
 
 	updateFromApiMatchPool(&data, pool)
@@ -245,16 +267,34 @@ func (r *AccelByteMatchPoolResource) Update(ctx context.Context, req resource.Up
 		return
 	}
 
+	apiMatchPoolConfig := toApiMatchPoolConfig(data)
+
+	tflog.Trace(ctx, "Updating match pool via AccelByte API", map[string]interface{}{
+		"namespace":          data.Namespace,
+		"name":               data.Name.ValueString(),
+		"apiMatchPoolConfig": apiMatchPoolConfig,
+	})
+
 	input := &match_pools.UpdateMatchPoolParams{
 		Namespace: data.Namespace.ValueString(),
 		Pool:      data.Name.ValueString(),
-		Body:      toApiMatchPoolConfig(data),
+		Body:      apiMatchPoolConfig,
 	}
 
 	apiMatchPool, err := r.client.UpdateMatchPoolShort(input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error when accessing AccelByte API", fmt.Sprintf("Unable to update new AccelByte match pool in namespace '%s', name '%s', got error: %s", input.Namespace, input.Pool, err))
-		return
+		notFoundError := &match_pools.UpdateMatchPoolNotFound{}
+		if errors.As(err, &notFoundError) {
+			// The resource does not exist in the AccelByte backend
+			// This means that the resource has disappeared since the TF state was refreshed at the start of the apply operation; we should abort
+			resp.Diagnostics.AddError("Resource not found", fmt.Sprintf("Match pool '%s' does not exist in namespace '%s'", input.Pool, input.Namespace))
+			return
+		} else {
+			// Failed to update the resource in the AccelByte backend
+			// The backend refused our update operation; we should abort
+			resp.Diagnostics.AddError("Error when updating match pool via AccelByte API", fmt.Sprintf("Unable to update match pool '%s' in namespace '%s', got error: %s", input.Pool, input.Namespace, err))
+			return
+		}
 	}
 
 	updateFromApiMatchPool(&data, apiMatchPool)
@@ -273,13 +313,18 @@ func (r *AccelByteMatchPoolResource) Delete(ctx context.Context, req resource.De
 		return
 	}
 
+	tflog.Trace(ctx, "Deleting match pool via AccelByte API", map[string]interface{}{
+		"namespace": data.Namespace,
+		"name":      data.Name.ValueString(),
+	})
+
 	input := &match_pools.DeleteMatchPoolParams{
 		Namespace: data.Namespace.ValueString(),
 		Pool:      data.Name.ValueString(),
 	}
 	err := r.client.DeleteMatchPoolShort(input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error when accessing AccelByte API", fmt.Sprintf("Unable to delete AccelByte match pool in namespace '%s', name '%s', got error: %s", input.Namespace, input.Pool, err))
+		resp.Diagnostics.AddError("Error when deleting match pool via AccelByte API", fmt.Sprintf("Unable to delete match pool '%s' in namespace '%s', got error: %s", input.Pool, input.Namespace, err))
 		return
 	}
 }
