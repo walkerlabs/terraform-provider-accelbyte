@@ -5,10 +5,12 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/service/session"
 	"github.com/AccelByte/accelbyte-go-sdk/session-sdk/pkg/sessionclient/configuration_template"
+	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -102,7 +104,76 @@ func (r *AccelByteSessionTemplateResource) Schema(ctx context.Context, req resou
 				Computed:            true,
 				Default:             int32default.StaticInt32(-1),
 			},
-			// TODO: support "use Custom Session Function"
+			"custom_session_function": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"on_session_created": schema.BoolAttribute{
+						MarkdownDescription: "",
+						Optional:            true,
+						Computed:            true,
+						Default:             booldefault.StaticBool(false),
+						Validators: []validator.Bool{
+							// At least one of the on_* bools must be set
+							boolvalidator.AtLeastOneOf(path.Expressions{
+								path.MatchRelative().AtParent().AtName("on_session_updated"),
+								path.MatchRelative().AtParent().AtName("on_session_deleted"),
+								path.MatchRelative().AtParent().AtName("on_party_created"),
+								path.MatchRelative().AtParent().AtName("on_party_updated"),
+								path.MatchRelative().AtParent().AtName("on_party_deleted"),
+							}...),
+						},
+					},
+					"on_session_updated": schema.BoolAttribute{
+						MarkdownDescription: "",
+						Optional:            true,
+						Computed:            true,
+						Default:             booldefault.StaticBool(false),
+					},
+					"on_session_deleted": schema.BoolAttribute{
+						MarkdownDescription: "",
+						Optional:            true,
+						Computed:            true,
+						Default:             booldefault.StaticBool(false),
+					},
+					"on_party_created": schema.BoolAttribute{
+						MarkdownDescription: "",
+						Optional:            true,
+						Computed:            true,
+						Default:             booldefault.StaticBool(false),
+					},
+					"on_party_updated": schema.BoolAttribute{
+						MarkdownDescription: "",
+						Optional:            true,
+						Computed:            true,
+						Default:             booldefault.StaticBool(false),
+					},
+					"on_party_deleted": schema.BoolAttribute{
+						MarkdownDescription: "",
+						Optional:            true,
+						Computed:            true,
+						Default:             booldefault.StaticBool(false),
+					},
+					"custom_url": schema.StringAttribute{
+						MarkdownDescription: "",
+						Optional:            true,
+						Computed:            true,
+						Default:             stringdefault.StaticString(""),
+						Validators: []validator.String{
+							// Custom URL cannot be used at the same time as an Extend App
+							stringvalidator.ExactlyOneOf(path.Expressions{
+								path.MatchRelative().AtParent().AtName("extend_app"),
+							}...),
+						},
+					},
+					"extend_app": schema.StringAttribute{
+						MarkdownDescription: "",
+						Optional:            true,
+						Computed:            true,
+						Default:             stringdefault.StaticString(""),
+					},
+				},
+				Optional: true,
+				Computed: true,
+			},
 
 			// "General" screen - Connection and Joinability
 			"invite_timeout": schema.Int32Attribute{
@@ -179,7 +250,7 @@ func (r *AccelByteSessionTemplateResource) Schema(ctx context.Context, req resou
 						Default:             stringdefault.StaticString(""),
 						Validators: []validator.String{
 							// Custom URL cannot be used at the same time as an Extend App
-							stringvalidator.ConflictsWith(path.Expressions{
+							stringvalidator.ExactlyOneOf(path.Expressions{
 								path.MatchRelative().AtParent().AtName("extend_app"),
 							}...),
 						},
@@ -335,8 +406,19 @@ func (r *AccelByteSessionTemplateResource) Read(ctx context.Context, req resourc
 	}
 	configTemplate, err := r.client.AdminGetConfigurationTemplateV1Short(&input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error when accessing AccelByte API", fmt.Sprintf("Unable to read info on AccelByte session template from namespace '%s' name '%s', got error: %s", input.Namespace, input.Name, err))
-		return
+		notFoundError := &configuration_template.AdminGetConfigurationTemplateV1NotFound{}
+		if errors.As(err, &notFoundError) {
+			// The resource does not exist in the AccelByte backend
+			// Ensure that it does not exist in the Terraform state either
+			// This not an error condition; Terraform will proceed assuming that the resource does not exist in the backend
+			resp.State.RemoveResource(ctx)
+			return
+		} else {
+			// Failed to retrieve the resource from the AccelByte backend
+			// This is an actual error; do not update Terraform state, and signal an error to Terraform
+			resp.Diagnostics.AddError("Error when accessing AccelByte API", fmt.Sprintf("Unable to read info on AccelByte session template from namespace '%s' name '%s', got error: %s", input.Namespace, input.Name, err))
+			return
+		}
 	}
 
 	updateFromApiSessionTemplate(ctx, &data, configTemplate)

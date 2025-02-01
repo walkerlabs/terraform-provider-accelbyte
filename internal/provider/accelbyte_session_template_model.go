@@ -37,8 +37,8 @@ type AccelByteSessionTemplateModel struct {
 	// Can be set by user during resource creation; will otherwise get defaults from the schema
 
 	// "General" screen - Main configuration
-	MaxActiveSessions types.Int32 `tfsdk:"max_active_sessions"`
-	// TODO: support "use Custom Session Function"
+	MaxActiveSessions     types.Int32  `tfsdk:"max_active_sessions"`
+	CustomSessionFunction types.Object `tfsdk:"custom_session_function"` // AccelByteSessionTemplateCustomSessionFunctionModel
 
 	// "General" screen - Connection and Joinability
 	InviteTimeout             types.Int32 `tfsdk:"invite_timeout"`
@@ -64,6 +64,28 @@ type AccelByteSessionTemplateModel struct {
 
 	// "Custom Attributes" screen
 	CustomAttributes types.String `tfsdk:"custom_attributes"`
+}
+
+var AccelByteSessionTemplateCustomSessionFunctionModelAttributeTypes = map[string]attr.Type{
+	"on_session_created": types.BoolType,
+	"on_session_updated": types.BoolType,
+	"on_session_deleted": types.BoolType,
+	"on_party_created":   types.BoolType,
+	"on_party_updated":   types.BoolType,
+	"on_party_deleted":   types.BoolType,
+	"custom_url":         types.StringType,
+	"extend_app":         types.StringType,
+}
+
+type AccelByteSessionTemplateCustomSessionFunctionModel struct {
+	OnSessionCreated types.Bool   `tfsdk:"on_session_created"`
+	OnSessionUpdated types.Bool   `tfsdk:"on_session_updated"`
+	OnSessionDeleted types.Bool   `tfsdk:"on_session_deleted"`
+	OnPartyCreated   types.Bool   `tfsdk:"on_party_created"`
+	OnPartyUpdated   types.Bool   `tfsdk:"on_party_updated"`
+	OnPartyDeleted   types.Bool   `tfsdk:"on_party_deleted"`
+	CustomUrl        types.String `tfsdk:"custom_url"`
+	ExtendApp        types.String `tfsdk:"extend_app"`
 }
 
 type AccelByteSessionTemplateP2pServerModel struct {
@@ -119,7 +141,24 @@ func updateFromApiSessionTemplate(ctx context.Context, data *AccelByteSessionTem
 
 	// "General" screen - Main configuration
 	data.MaxActiveSessions = types.Int32Value(configurationTemplate.MaxActiveSessions)
-	// TODO: support "use Custom Session Function"
+	data.CustomSessionFunction = basetypes.NewObjectNull(AccelByteSessionTemplateCustomSessionFunctionModelAttributeTypes)
+	if configurationTemplate.GrpcSessionConfig != nil && configurationTemplate.GrpcSessionConfig.FunctionFlag != nil {
+
+		customSessionFunctionModel := &AccelByteSessionTemplateCustomSessionFunctionModel{
+			CustomUrl:        types.StringValue(configurationTemplate.GrpcSessionConfig.CustomURL),
+			ExtendApp:        types.StringValue(configurationTemplate.GrpcSessionConfig.AppName),
+			OnSessionCreated: types.BoolValue((*configurationTemplate.GrpcSessionConfig.FunctionFlag & 1) != 0),
+			OnSessionUpdated: types.BoolValue((*configurationTemplate.GrpcSessionConfig.FunctionFlag & 2) != 0),
+			OnSessionDeleted: types.BoolValue((*configurationTemplate.GrpcSessionConfig.FunctionFlag & 4) != 0),
+			OnPartyCreated:   types.BoolValue((*configurationTemplate.GrpcSessionConfig.FunctionFlag & 8) != 0),
+			OnPartyUpdated:   types.BoolValue((*configurationTemplate.GrpcSessionConfig.FunctionFlag & 16) != 0),
+			OnPartyDeleted:   types.BoolValue((*configurationTemplate.GrpcSessionConfig.FunctionFlag & 32) != 0),
+		}
+
+		customSessionFunction, customSessionFunctionDiags := basetypes.NewObjectValueFrom(ctx, AccelByteSessionTemplateCustomSessionFunctionModelAttributeTypes, customSessionFunctionModel)
+		data.CustomSessionFunction = customSessionFunction
+		diags.Append(customSessionFunctionDiags...)
+	}
 
 	// "General" screen - Connection and Joinability
 	data.InviteTimeout = types.Int32Value(*configurationTemplate.InviteTimeout)
@@ -186,9 +225,56 @@ func updateFromApiSessionTemplate(ctx context.Context, data *AccelByteSessionTem
 	return diags, nil
 }
 
+func toModelsExtendConfiguration(ctx context.Context, customSessionFunction types.Object) (*sessionclientmodels.ModelsExtendConfiguration, diag.Diagnostics) {
+
+	var customSessionFunctionModel AccelByteSessionTemplateCustomSessionFunctionModel
+	diags := customSessionFunction.As(ctx, &customSessionFunctionModel, basetypes.ObjectAsOptions{})
+
+	functionFlag := int32(0)
+	if customSessionFunctionModel.OnSessionCreated.ValueBool() {
+		functionFlag |= 1
+	}
+	if customSessionFunctionModel.OnSessionUpdated.ValueBool() {
+		functionFlag |= 2
+	}
+	if customSessionFunctionModel.OnSessionDeleted.ValueBool() {
+		functionFlag |= 4
+	}
+	if customSessionFunctionModel.OnPartyCreated.ValueBool() {
+		functionFlag |= 8
+	}
+	if customSessionFunctionModel.OnPartyUpdated.ValueBool() {
+		functionFlag |= 16
+	}
+	if customSessionFunctionModel.OnPartyDeleted.ValueBool() {
+		functionFlag |= 32
+	}
+
+	grpcSessionConfig := &sessionclientmodels.ModelsExtendConfiguration{
+		CustomURL:    customSessionFunctionModel.CustomUrl.ValueString(),
+		AppName:      customSessionFunctionModel.ExtendApp.ValueString(),
+		FunctionFlag: &functionFlag,
+	}
+
+	return grpcSessionConfig, diags
+}
+
 func toApiSessionTemplate(ctx context.Context, data AccelByteSessionTemplateModel) (*sessionclientmodels.ApimodelsCreateConfigurationTemplateRequest, diag.Diagnostics, error) {
 
 	var diags diag.Diagnostics = nil
+
+	// Handle custom session function
+
+	var grpcSessionConfig *sessionclientmodels.ModelsExtendConfiguration = nil
+
+	if !data.CustomSessionFunction.IsNull() && !data.CustomSessionFunction.IsUnknown() {
+
+		grpcSessionConfig0, grpcSessionConfigDiags := toModelsExtendConfiguration(ctx, data.CustomSessionFunction)
+		grpcSessionConfig = grpcSessionConfig0
+		diags.Append(grpcSessionConfigDiags...)
+	}
+
+	///////////////
 
 	serverType := AccelByteSessionTemplateServerTypeNone
 	dsSource := AccelByteSessionTemplateDsSourceNone
@@ -253,7 +339,7 @@ func toApiSessionTemplate(ctx context.Context, data AccelByteSessionTemplateMode
 
 		// "General" screen - Main configuration
 		MaxActiveSessions: data.MaxActiveSessions.ValueInt32(),
-		// TODO: support "use Custom Session Function"
+		GrpcSessionConfig: grpcSessionConfig,
 
 		// "General" screen - Connection and Joinability
 		InviteTimeout:             data.InviteTimeout.ValueInt32Pointer(),
@@ -289,6 +375,19 @@ func toApiSessionTemplate(ctx context.Context, data AccelByteSessionTemplateMode
 func toApiSessionTemplateConfig(ctx context.Context, data AccelByteSessionTemplateModel) (*sessionclientmodels.ApimodelsUpdateConfigurationTemplateRequest, diag.Diagnostics, error) {
 
 	var diags diag.Diagnostics = nil
+
+	// Handle custom session function
+
+	var grpcSessionConfig *sessionclientmodels.ModelsExtendConfiguration = nil
+
+	if !data.CustomSessionFunction.IsNull() && !data.CustomSessionFunction.IsUnknown() {
+
+		grpcSessionConfig0, grpcSessionConfigDiags := toModelsExtendConfiguration(ctx, data.CustomSessionFunction)
+		grpcSessionConfig = grpcSessionConfig0
+		diags.Append(grpcSessionConfigDiags...)
+	}
+
+	///////////////
 
 	serverType := AccelByteSessionTemplateServerTypeNone
 	dsSource := AccelByteSessionTemplateDsSourceNone
@@ -353,7 +452,7 @@ func toApiSessionTemplateConfig(ctx context.Context, data AccelByteSessionTempla
 
 		// "General" screen - Main configuration
 		MaxActiveSessions: data.MaxActiveSessions.ValueInt32(),
-		// TODO: support "use Custom Session Function"
+		GrpcSessionConfig: grpcSessionConfig,
 
 		// "General" screen - Connection and Joinability
 		InviteTimeout:             data.InviteTimeout.ValueInt32Pointer(),

@@ -3,13 +3,24 @@ resource "accelbyte_session_template" "test" {
   name      = "test"
 
   // "General" screen - Main configuration
-  min_players = 2
-  max_players = 12
+  min_players         = 2
+  max_players         = 12
+  max_active_sessions = -1
 
-  // "General" screen - Main configuration
-  joinability = "OPEN"
+  # custom_session_function = {
+  #   on_session_created = false
+  #   on_session_updated = false
+  #   on_session_deleted = false
+  #   on_party_created   = true
+  #   on_party_updated   = true
+  #   on_party_deleted   = true
+
+  #   custom_url = "https://example.com"
+  #   # extend_app = "test-app"
+  # }
 
   // "General" screen - Connection and Joinability
+  joinability                  = "OPEN"
   invite_timeout               = 60
   inactive_timeout             = 300
   leader_election_grace_period = 240

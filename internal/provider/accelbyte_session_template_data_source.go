@@ -79,7 +79,44 @@ func (d *AccelByteSessionTemplateDataSource) Schema(ctx context.Context, req dat
 				MarkdownDescription: "",
 				Computed:            true,
 			},
-			// TODO: support "use Custom Session Function"
+			"custom_session_function": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"on_session_created": schema.BoolAttribute{
+						MarkdownDescription: "",
+						Computed:            true,
+					},
+					"on_session_updated": schema.BoolAttribute{
+						MarkdownDescription: "",
+						Computed:            true,
+					},
+					"on_session_deleted": schema.BoolAttribute{
+						MarkdownDescription: "",
+						Computed:            true,
+					},
+					"on_party_created": schema.BoolAttribute{
+						MarkdownDescription: "",
+						Computed:            true,
+					},
+					"on_party_updated": schema.BoolAttribute{
+						MarkdownDescription: "",
+						Computed:            true,
+					},
+					"on_party_deleted": schema.BoolAttribute{
+						MarkdownDescription: "",
+						Computed:            true,
+					},
+					"custom_url": schema.StringAttribute{
+						MarkdownDescription: "",
+						Computed:            true,
+					},
+					"extend_app": schema.StringAttribute{
+						MarkdownDescription: "",
+						Computed:            true,
+					},
+				},
+				Optional: true,
+				Computed: true,
+			},
 
 			// "General" screen - Connection and Joinability
 			"invite_timeout": schema.Int32Attribute{
