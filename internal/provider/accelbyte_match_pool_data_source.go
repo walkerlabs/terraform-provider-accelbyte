@@ -59,6 +59,7 @@ func (d *AccelByteMatchPoolDataSource) Schema(ctx context.Context, req datasourc
 
 			// Fetched from AccelByte API during Read() opearation
 
+			// Basic information
 			"rule_set": schema.StringAttribute{
 				MarkdownDescription: "",
 				Computed:            true,
@@ -67,7 +68,18 @@ func (d *AccelByteMatchPoolDataSource) Schema(ctx context.Context, req datasourc
 				MarkdownDescription: "",
 				Computed:            true,
 			},
+			"ticket_expiration_seconds": schema.Int32Attribute{
+				MarkdownDescription: "",
+				Computed:            true,
+			},
 
+			// Best latency calculation method
+			"best_latency_calculation_method": schema.StringAttribute{
+				MarkdownDescription: "",
+				Computed:            true,
+			},
+
+			// Backfill
 			"auto_accept_backfill_proposal": schema.BoolAttribute{
 				MarkdownDescription: "",
 				Computed:            true,
@@ -80,16 +92,8 @@ func (d *AccelByteMatchPoolDataSource) Schema(ctx context.Context, req datasourc
 				MarkdownDescription: "",
 				Computed:            true,
 			},
-			"best_latency_calculation_method": schema.StringAttribute{
-				MarkdownDescription: "",
-				Computed:            true,
-				Optional:            true,
-			},
-			"crossplay_disabled": schema.BoolAttribute{
-				MarkdownDescription: "",
-				Computed:            true,
-				Optional:            true,
-			},
+
+			// Customization
 			"match_function": schema.StringAttribute{
 				MarkdownDescription: "",
 				Computed:            true,
@@ -98,12 +102,13 @@ func (d *AccelByteMatchPoolDataSource) Schema(ctx context.Context, req datasourc
 			// 	MarkdownDescription: "",
 			// 	Computed:            true,
 			// },
-			"platform_group_enabled": schema.BoolAttribute{
+
+			// Matchmaking Preferences
+			"crossplay_enabled": schema.BoolAttribute{
 				MarkdownDescription: "",
 				Computed:            true,
-				Optional:            true,
 			},
-			"ticket_expiration_seconds": schema.Int32Attribute{
+			"platform_group_enabled": schema.BoolAttribute{
 				MarkdownDescription: "",
 				Computed:            true,
 			},

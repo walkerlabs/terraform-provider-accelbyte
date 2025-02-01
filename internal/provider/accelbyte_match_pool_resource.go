@@ -14,7 +14,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int32default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -73,6 +76,7 @@ func (r *AccelByteMatchPoolResource) Schema(ctx context.Context, req resource.Sc
 
 			// Must be set by user during resource creation
 
+			// Basic information
 			"rule_set": schema.StringAttribute{
 				MarkdownDescription: "",
 				Required:            true,
@@ -81,52 +85,65 @@ func (r *AccelByteMatchPoolResource) Schema(ctx context.Context, req resource.Sc
 				MarkdownDescription: "",
 				Required:            true,
 			},
+			"ticket_expiration_seconds": schema.Int32Attribute{
+				MarkdownDescription: "",
+				Optional:            true,
+				Computed:            true,
+				Default:             int32default.StaticInt32(300),
+			},
 
-			// Can be set by user during resource creation; will otherwise get defaults from API
+			// Best latency calculation method
+			"best_latency_calculation_method": schema.StringAttribute{
+				MarkdownDescription: "",
+				Optional:            true,
+				Computed:            true,
+				Default:             stringdefault.StaticString(""),
+			},
 
+			// Backfill
 			"auto_accept_backfill_proposal": schema.BoolAttribute{
 				MarkdownDescription: "",
 				Optional:            true,
 				Computed:            true,
+				Default:             booldefault.StaticBool(false),
 			},
 			"backfill_proposal_expiration_seconds": schema.Int32Attribute{
 				MarkdownDescription: "",
 				Optional:            true,
 				Computed:            true,
+				Default:             int32default.StaticInt32(30),
 			},
 			"backfill_ticket_expiration_seconds": schema.Int32Attribute{
 				MarkdownDescription: "",
 				Optional:            true,
 				Computed:            true,
+				Default:             int32default.StaticInt32(300),
 			},
-			"best_latency_calculation_method": schema.StringAttribute{
-				MarkdownDescription: "",
-				Optional:            true,
-				Computed:            true,
-			},
-			"crossplay_disabled": schema.BoolAttribute{
-				MarkdownDescription: "",
-				Optional:            true,
-				Computed:            true,
-			},
+
+			// Customization
 			"match_function": schema.StringAttribute{
 				MarkdownDescription: "",
 				Optional:            true,
 				Computed:            true,
+				Default:             stringdefault.StaticString(""),
 			},
 			// "match_function_override": schema.StringAttribute{
 			// 	MarkdownDescription: "",
 			// 	Computed:            true,
 			// },
+
+			// Matchmaking Preferences
+			"crossplay_enabled": schema.BoolAttribute{
+				MarkdownDescription: "",
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
+			},
 			"platform_group_enabled": schema.BoolAttribute{
 				MarkdownDescription: "",
 				Optional:            true,
 				Computed:            true,
-			},
-			"ticket_expiration_seconds": schema.Int32Attribute{
-				MarkdownDescription: "",
-				Optional:            true,
-				Computed:            true,
+				Default:             booldefault.StaticBool(false),
 			},
 		},
 	}

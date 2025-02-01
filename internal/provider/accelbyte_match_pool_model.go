@@ -17,22 +17,26 @@ type AccelByteMatchPoolModel struct {
 	// Computed during Read() operation
 	Id types.String `tfsdk:"id"`
 
-	// Must be set by user during resource creation
+	// Basic information
+	RuleSet                 types.String `tfsdk:"rule_set"`
+	SessionTemplate         types.String `tfsdk:"session_template"`
+	TicketExpirationSeconds types.Int32  `tfsdk:"ticket_expiration_seconds"`
 
-	RuleSet         types.String `tfsdk:"rule_set"`
-	SessionTemplate types.String `tfsdk:"session_template"`
+	// Best latency calculation method
+	BestLatencyCalculationMethod types.String `tfsdk:"best_latency_calculation_method"`
 
-	// Can be set by user during resource creation; will otherwise get defaults from API
+	// Backfill
+	AutoAcceptBackfillProposal        types.Bool  `tfsdk:"auto_accept_backfill_proposal"`
+	BackfillProposalExpirationSeconds types.Int32 `tfsdk:"backfill_proposal_expiration_seconds"`
+	BackfillTicketExpirationSeconds   types.Int32 `tfsdk:"backfill_ticket_expiration_seconds"`
 
-	AutoAcceptBackfillProposal        types.Bool   `tfsdk:"auto_accept_backfill_proposal"`
-	BackfillProposalExpirationSeconds types.Int32  `tfsdk:"backfill_proposal_expiration_seconds"`
-	BackfillTicketExpirationSeconds   types.Int32  `tfsdk:"backfill_ticket_expiration_seconds"`
-	BestLatencyCalculationMethod      types.String `tfsdk:"best_latency_calculation_method"` // optional
-	CrossplayDisabled                 types.Bool   `tfsdk:"crossplay_disabled"`              // optional
-	MatchFunction                     types.String `tfsdk:"match_function"`
+	// Customization
+	MatchFunction types.String `tfsdk:"match_function"`
 	// MatchFunctionOverride             types.Object `tfsdk:"match_function_override"` // This is a AccelByteMatchPoolMatchFunctionOverrideDataSourceModel
-	PlatformGroupEnabled    types.Bool  `tfsdk:"platform_group_enabled"` // optional
-	TicketExpirationSeconds types.Int32 `tfsdk:"ticket_expiration_seconds"`
+
+	// Matchmaking Preferences
+	CrossplayEnabled     types.Bool `tfsdk:"crossplay_enabled"`
+	PlatformGroupEnabled types.Bool `tfsdk:"platform_group_enabled"`
 }
 
 // type AccelByteMatchPoolMatchFunctionOverrideDataSourceModel struct {
@@ -50,7 +54,7 @@ func updateFromApiMatchPool(data *AccelByteMatchPoolModel, pool *match2clientmod
 	data.BackfillProposalExpirationSeconds = types.Int32Value(*pool.BackfillProposalExpirationSeconds)
 	data.BackfillTicketExpirationSeconds = types.Int32Value(*pool.BackfillTicketExpirationSeconds)
 	data.BestLatencyCalculationMethod = types.StringValue(pool.BestLatencyCalculationMethod)
-	data.CrossplayDisabled = types.BoolValue(pool.CrossplayDisabled)
+	data.CrossplayEnabled = types.BoolValue(!pool.CrossplayDisabled)
 	data.MatchFunction = types.StringValue(*pool.MatchFunction)
 	// data.MatchFunctionOverride = types.ObjectValue(AccelByteMatchPoolMatchFunctionOverrideDataSourceModel{
 	// 	BackfillMatches: pool.MatchFunctionOverride.BackfillMatches,
@@ -73,7 +77,7 @@ func toApiMatchPool(data AccelByteMatchPoolModel) *match2clientmodels.APIMatchPo
 		BackfillProposalExpirationSeconds: data.BackfillProposalExpirationSeconds.ValueInt32Pointer(),
 		BackfillTicketExpirationSeconds:   data.BackfillTicketExpirationSeconds.ValueInt32Pointer(),
 		BestLatencyCalculationMethod:      data.BestLatencyCalculationMethod.ValueString(),
-		CrossplayDisabled:                 data.CrossplayDisabled.ValueBool(),
+		CrossplayDisabled:                 !data.CrossplayEnabled.ValueBool(),
 		MatchFunction:                     data.MatchFunction.ValueStringPointer(),
 		//MatchFunctionOverride: data.MatchFunctionOverride.ValueInt32Pointer(),
 		Name:                    data.Name.ValueStringPointer(),
@@ -92,7 +96,7 @@ func toApiMatchPoolConfig(data AccelByteMatchPoolModel) *match2clientmodels.APIM
 		BackfillProposalExpirationSeconds: data.BackfillProposalExpirationSeconds.ValueInt32Pointer(),
 		BackfillTicketExpirationSeconds:   data.BackfillTicketExpirationSeconds.ValueInt32Pointer(),
 		BestLatencyCalculationMethod:      data.BestLatencyCalculationMethod.ValueString(),
-		CrossplayDisabled:                 data.CrossplayDisabled.ValueBool(),
+		CrossplayDisabled:                 !data.CrossplayEnabled.ValueBool(),
 		MatchFunction:                     data.MatchFunction.ValueStringPointer(),
 		//MatchFunctionOverride: data.MatchFunctionOverride.ValueInt32Pointer(),
 		PlatformGroupEnabled:    data.PlatformGroupEnabled.ValueBool(),
