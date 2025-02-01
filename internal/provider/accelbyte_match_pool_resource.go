@@ -125,7 +125,7 @@ func (r *AccelByteMatchPoolResource) Schema(ctx context.Context, req resource.Sc
 				MarkdownDescription: "",
 				Optional:            true,
 				Computed:            true,
-				Default:             stringdefault.StaticString(""),
+				Default:             stringdefault.StaticString("default"),
 			},
 			// "match_function_override": schema.StringAttribute{
 			// 	MarkdownDescription: "",
