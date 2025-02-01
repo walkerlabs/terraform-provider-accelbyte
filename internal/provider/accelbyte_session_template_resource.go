@@ -366,6 +366,12 @@ func (r *AccelByteSessionTemplateResource) Create(ctx context.Context, req resou
 		return
 	}
 
+	tflog.Trace(ctx, "Creating session template via AccelByte API", map[string]interface{}{
+		"namespace":          data.Namespace,
+		"name":               data.Name.ValueString(),
+		"apiSessionTemplate": apiSessionTemplate,
+	})
+
 	input := &configuration_template.AdminCreateConfigurationTemplateV1Params{
 		Namespace: data.Namespace.ValueString(),
 		Body:      apiSessionTemplate,
@@ -373,18 +379,11 @@ func (r *AccelByteSessionTemplateResource) Create(ctx context.Context, req resou
 
 	configurationTemplate, err := r.client.AdminCreateConfigurationTemplateV1Short(input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error when accessing AccelByte API", fmt.Sprintf("Unable to create new AccelByte session template in namespace '%s', name '%s', got error: %s", input.Namespace, input.Body.Name, err))
+		resp.Diagnostics.AddError("Error when creating session template via AccelByte API", fmt.Sprintf("Unable to create session template '%s' in namespace '%s', got error: %s", input.Body.Name, input.Namespace, err))
 		return
 	}
 
 	updateFromApiSessionTemplate(ctx, &data, configurationTemplate)
-
-	// Write logs using the tflog package
-	// Documentation: https://terraform.io/plugin/log
-	tflog.Trace(ctx, "Created an AccelByteSessionTemplateResource", map[string]interface{}{
-		"namespace": data.Namespace,
-		"name":      data.Name.ValueString(),
-	})
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -416,19 +415,18 @@ func (r *AccelByteSessionTemplateResource) Read(ctx context.Context, req resourc
 		} else {
 			// Failed to retrieve the resource from the AccelByte backend
 			// This is an actual error; do not update Terraform state, and signal an error to Terraform
-			resp.Diagnostics.AddError("Error when accessing AccelByte API", fmt.Sprintf("Unable to read info on AccelByte session template from namespace '%s' name '%s', got error: %s", input.Namespace, input.Name, err))
+			resp.Diagnostics.AddError("Error when reading session template via AccelByte API", fmt.Sprintf("Unable to read session template '%s' in namespace '%s', got error: %s", input.Name, input.Namespace, err))
 			return
 		}
 	}
 
-	updateFromApiSessionTemplate(ctx, &data, configTemplate)
-
-	// Write logs using the tflog package
-	// Documentation: https://terraform.io/plugin/log
-	tflog.Trace(ctx, "Read AccelByteSessionTemplateResource from AccelByte API", map[string]interface{}{
-		"namespace": data.Namespace,
-		"name":      data.Name.ValueString(),
+	tflog.Trace(ctx, "Read session template from AccelByte API", map[string]interface{}{
+		"namespace":      data.Namespace,
+		"name":           data.Name.ValueString(),
+		"configTemplate": configTemplate,
 	})
+
+	updateFromApiSessionTemplate(ctx, &data, configTemplate)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -451,6 +449,12 @@ func (r *AccelByteSessionTemplateResource) Update(ctx context.Context, req resou
 		return
 	}
 
+	tflog.Trace(ctx, "Updating session template via AccelByte API", map[string]interface{}{
+		"namespace":                data.Namespace,
+		"name":                     data.Name.ValueString(),
+		"apiSessionTemplateConfig": apiSessionTemplateConfig,
+	})
+
 	input := &configuration_template.AdminUpdateConfigurationTemplateV1Params{
 		Namespace: data.Namespace.ValueString(),
 		Name:      data.Name.ValueString(),
@@ -459,8 +463,18 @@ func (r *AccelByteSessionTemplateResource) Update(ctx context.Context, req resou
 
 	apiSessionTemplate, err := r.client.AdminUpdateConfigurationTemplateV1Short(input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error when accessing AccelByte API", fmt.Sprintf("Unable to update AccelByte session template in namespace '%s', name '%s', got error: %s", input.Namespace, input.Name, err))
-		return
+		notFoundError := &configuration_template.AdminUpdateConfigurationTemplateV1NotFound{}
+		if errors.As(err, &notFoundError) {
+			// The resource does not exist in the AccelByte backend
+			// This means that the resource has disappeared since the TF state was refreshed at the start of the apply operation; we should abort
+			resp.Diagnostics.AddError("Resource not found", fmt.Sprintf("Session template '%s' does not exist in namespace '%s'", input.Name, input.Namespace))
+			return
+		} else {
+			// Failed to update the resource in the AccelByte backend
+			// The backend refused our update operation; we should abort
+			resp.Diagnostics.AddError("Error when updating session template via AccelByte API", fmt.Sprintf("Unable to update session template '%s' in namespace '%s', got error: %s", input.Name, input.Namespace, err))
+			return
+		}
 	}
 
 	updateFromApiSessionTemplate(ctx, &data, apiSessionTemplate)
@@ -479,13 +493,18 @@ func (r *AccelByteSessionTemplateResource) Delete(ctx context.Context, req resou
 		return
 	}
 
+	tflog.Trace(ctx, "Deleting session template via AccelByte API", map[string]interface{}{
+		"namespace": data.Namespace,
+		"name":      data.Name.ValueString(),
+	})
+
 	input := &configuration_template.AdminDeleteConfigurationTemplateV1Params{
 		Namespace: data.Namespace.ValueString(),
 		Name:      data.Name.ValueString(),
 	}
 	err := r.client.AdminDeleteConfigurationTemplateV1Short(input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error when accessing AccelByte API", fmt.Sprintf("Unable to delete AccelByte session template in namespace '%s', name '%s', got error: %s", input.Namespace, input.Name, err))
+		resp.Diagnostics.AddError("Error when deleting session template via AccelByte API", fmt.Sprintf("Unable to delete session template '%s' in namespace '%s', got error: %s", input.Name, input.Namespace, err))
 		return
 	}
 }

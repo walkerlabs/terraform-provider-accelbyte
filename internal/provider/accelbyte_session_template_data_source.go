@@ -5,6 +5,7 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/service/session"
@@ -265,23 +266,33 @@ func (d *AccelByteSessionTemplateDataSource) Read(ctx context.Context, req datas
 	}
 	configTemplate, err := d.client.AdminGetConfigurationTemplateV1Short(&input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error when accessing AccelByte API", fmt.Sprintf("Unable to read info on AccelByte session template from namespace '%s' name '%s', got error: %s", input.Namespace, input.Name, err))
-		return
+		notFoundError := &configuration_template.AdminGetConfigurationTemplateV1NotFound{}
+		if errors.As(err, &notFoundError) {
+			// The data source does not exist in the AccelByte backend
+			// Ensure that it does not exist in the Terraform state either
+			// This not an error condition; Terraform will proceed assuming that the data source does not exist in the backend
+			resp.Diagnostics.AddError("Data source not found", fmt.Sprintf("Session template '%s' does not exist in namespace '%s'", input.Name, input.Namespace))
+			return
+		} else {
+			// Failed to retrieve the data source from the AccelByte backend
+			// This is an actual error; do not update Terraform state, and signal an error to Terraform
+			resp.Diagnostics.AddError("Error when reading session template via AccelByte API", fmt.Sprintf("Unable to read session template '%s' in namespace '%s', got error: %s", input.Name, input.Namespace, err))
+			return
+		}
 	}
+
+	tflog.Trace(ctx, "Read session template from AccelByte API", map[string]interface{}{
+		"namespace":      data.Namespace,
+		"name":           data.Name.ValueString(),
+		"configTemplate": configTemplate,
+	})
 
 	diags, err := updateFromApiSessionTemplate(ctx, &data, configTemplate)
 	resp.Diagnostics.Append(diags...)
 	if err != nil {
-		resp.Diagnostics.AddError("Error when updating our internal state from the session template", fmt.Sprintf("Error: %#v", err))
+		resp.Diagnostics.AddError("Error when updating our internal state to match session template", fmt.Sprintf("Error: %#v", err))
 		return
 	}
-
-	// Write logs using the tflog package
-	// Documentation: https://terraform.io/plugin/log
-	tflog.Trace(ctx, "Read AccelByteSessionTemplateDataSource from AccelByte API", map[string]interface{}{
-		"namespace": data.Namespace,
-		"name":      data.Name.ValueString(),
-	})
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
