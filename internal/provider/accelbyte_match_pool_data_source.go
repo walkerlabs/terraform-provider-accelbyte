@@ -98,10 +98,35 @@ func (d *AccelByteMatchPoolDataSource) Schema(ctx context.Context, req datasourc
 				MarkdownDescription: "",
 				Computed:            true,
 			},
-			// "match_function_override": schema.StringAttribute{
-			// 	MarkdownDescription: "",
-			// 	Computed:            true,
-			// },
+			"match_function_override": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"backfill_matches": schema.StringAttribute{
+						MarkdownDescription: "",
+						Computed:            true,
+					},
+					"enrichment": schema.ListAttribute{
+						ElementType:         types.StringType,
+						MarkdownDescription: "",
+						Computed:            true,
+					},
+					"make_matches": schema.StringAttribute{
+						MarkdownDescription: "",
+						Computed:            true,
+					},
+					"stat_codes": schema.ListAttribute{
+						ElementType:         types.StringType,
+						MarkdownDescription: "",
+						Computed:            true,
+					},
+					"validation": schema.ListAttribute{
+						ElementType:         types.StringType,
+						MarkdownDescription: "",
+						Computed:            true,
+					},
+				},
+				Optional: true,
+				Computed: true,
+			},
 
 			// Matchmaking Preferences
 			"crossplay_enabled": schema.BoolAttribute{
@@ -176,7 +201,7 @@ func (d *AccelByteMatchPoolDataSource) Read(ctx context.Context, req datasource.
 		"pool":      pool,
 	})
 
-	updateFromApiMatchPool(&data, pool)
+	updateFromApiMatchPool(ctx, &data, pool)
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

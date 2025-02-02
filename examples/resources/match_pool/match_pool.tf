@@ -17,6 +17,13 @@ resource "accelbyte_match_pool" "pool" {
 
   // Customization
   match_function = "default"
+  match_function_override = {
+    backfill_matches = "blah"
+    # enrichment       = ["x1", "x2"]
+    make_matches = ""
+    stat_codes   = []
+    validation   = []
+  }
 
   // Matchmaking Preferences
   crossplay_enabled      = false

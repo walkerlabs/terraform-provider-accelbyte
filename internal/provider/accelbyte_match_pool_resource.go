@@ -8,24 +8,33 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/AccelByte/accelbyte-go-sdk/match2-sdk/pkg/match2client/match_pools"
 	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/service/match2"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int32default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &AccelByteMatchPoolResource{}
 var _ resource.ResourceWithImportState = &AccelByteMatchPoolResource{}
+
+const (
+	// Wait this many seconds after any write operation to the AB API, in the hope that cached results are flushed out by then
+	CACHE_INVALIDATION_DELAY_SECONDS = 20
+)
 
 func NewAccelByteMatchPoolResource() resource.Resource {
 	return &AccelByteMatchPoolResource{}
@@ -127,10 +136,45 @@ func (r *AccelByteMatchPoolResource) Schema(ctx context.Context, req resource.Sc
 				Computed:            true,
 				Default:             stringdefault.StaticString("default"),
 			},
-			// "match_function_override": schema.StringAttribute{
-			// 	MarkdownDescription: "",
-			// 	Computed:            true,
-			// },
+			"match_function_override": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"backfill_matches": schema.StringAttribute{
+						MarkdownDescription: "",
+						Optional:            true,
+						Computed:            true,
+						Default:             stringdefault.StaticString(""),
+					},
+					"enrichment": schema.ListAttribute{
+						ElementType:         types.StringType,
+						MarkdownDescription: "",
+						Optional:            true,
+						Computed:            true,
+						Default:             listdefault.StaticValue(types.ListValueMust(basetypes.StringType{}, []attr.Value{})),
+					},
+					"make_matches": schema.StringAttribute{
+						MarkdownDescription: "",
+						Optional:            true,
+						Computed:            true,
+						Default:             stringdefault.StaticString(""),
+					},
+					"stat_codes": schema.ListAttribute{
+						ElementType:         types.StringType,
+						MarkdownDescription: "",
+						Optional:            true,
+						Computed:            true,
+						Default:             listdefault.StaticValue(types.ListValueMust(basetypes.StringType{}, []attr.Value{})),
+					},
+					"validation": schema.ListAttribute{
+						ElementType:         types.StringType,
+						MarkdownDescription: "",
+						Optional:            true,
+						Computed:            true,
+						Default:             listdefault.StaticValue(types.ListValueMust(basetypes.StringType{}, []attr.Value{})),
+					},
+				},
+				Optional: true,
+				Computed: true,
+			},
 
 			// Matchmaking Preferences
 			"crossplay_enabled": schema.BoolAttribute{
@@ -183,7 +227,8 @@ func (r *AccelByteMatchPoolResource) Create(ctx context.Context, req resource.Cr
 
 	// Create pool
 
-	apiMatchPool := toApiMatchPool(data)
+	apiMatchPool, apiMatchPoolDiags := toApiMatchPool(ctx, data)
+	resp.Diagnostics.Append(apiMatchPoolDiags...)
 
 	tflog.Trace(ctx, "Creating match pool via AccelByte API", map[string]interface{}{
 		"namespace":    data.Namespace,
@@ -201,6 +246,8 @@ func (r *AccelByteMatchPoolResource) Create(ctx context.Context, req resource.Cr
 		resp.Diagnostics.AddError("Error when creating match pool via AccelByte API", fmt.Sprintf("Unable to create match pool '%s' in namespace '%s', got error: %s", apiMatchPool.Name, createInput.Namespace, err))
 		return
 	}
+
+	time.Sleep(CACHE_INVALIDATION_DELAY_SECONDS * time.Second)
 
 	// Fetch pool immediately after creating it, so we can get the values for un-set defaults
 
@@ -222,7 +269,7 @@ func (r *AccelByteMatchPoolResource) Create(ctx context.Context, req resource.Cr
 
 	// Reflect new pool from API into our model
 
-	updateFromApiMatchPool(&data, pool)
+	updateFromApiMatchPool(ctx, &data, pool)
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -242,6 +289,7 @@ func (r *AccelByteMatchPoolResource) Read(ctx context.Context, req resource.Read
 		Namespace: data.Namespace.ValueString(),
 		Pool:      data.Name.ValueString(),
 	}
+
 	pool, err := r.client.MatchPoolDetailsShort(&input)
 	if err != nil {
 		// TODO: once the AccelByte SDK introduces match_pools.MatchPoolDetailsNotFound, we should use the following logic to detect API "not found" errors:
@@ -261,7 +309,7 @@ func (r *AccelByteMatchPoolResource) Read(ctx context.Context, req resource.Read
 		}
 	}
 
-	updateFromApiMatchPool(&data, pool)
+	updateFromApiMatchPool(ctx, &data, pool)
 
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log
@@ -284,7 +332,8 @@ func (r *AccelByteMatchPoolResource) Update(ctx context.Context, req resource.Up
 		return
 	}
 
-	apiMatchPoolConfig := toApiMatchPoolConfig(data)
+	apiMatchPoolConfig, apiMatchPoolConfigDiags := toApiMatchPoolConfig(ctx, data)
+	resp.Diagnostics.Append(apiMatchPoolConfigDiags...)
 
 	tflog.Trace(ctx, "Updating match pool via AccelByte API", map[string]interface{}{
 		"namespace":          data.Namespace,
@@ -314,7 +363,9 @@ func (r *AccelByteMatchPoolResource) Update(ctx context.Context, req resource.Up
 		}
 	}
 
-	updateFromApiMatchPool(&data, apiMatchPool)
+	time.Sleep(CACHE_INVALIDATION_DELAY_SECONDS * time.Second)
+
+	updateFromApiMatchPool(ctx, &data, apiMatchPool)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -344,6 +395,8 @@ func (r *AccelByteMatchPoolResource) Delete(ctx context.Context, req resource.De
 		resp.Diagnostics.AddError("Error when deleting match pool via AccelByte API", fmt.Sprintf("Unable to delete match pool '%s' in namespace '%s', got error: %s", input.Pool, input.Namespace, err))
 		return
 	}
+
+	time.Sleep(CACHE_INVALIDATION_DELAY_SECONDS * time.Second)
 }
 
 func (r *AccelByteMatchPoolResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
