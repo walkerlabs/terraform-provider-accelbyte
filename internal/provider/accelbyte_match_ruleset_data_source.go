@@ -42,18 +42,18 @@ func (d *AccelByteMatchRuleSetDataSource) Schema(ctx context.Context, req dataso
 			// Populated by user
 
 			"namespace": schema.StringAttribute{
-				MarkdownDescription: "Game Namespace which contains the session template",
+				MarkdownDescription: "Game Namespace which contains the match ruleset",
 				Required:            true,
 			},
 			"name": schema.StringAttribute{
-				MarkdownDescription: "Name of session template",
+				MarkdownDescription: "Name of match ruleset",
 				Required:            true,
 			},
 
 			// Computed during Read() operation
 
 			"id": schema.StringAttribute{
-				MarkdownDescription: "Session template identifier",
+				MarkdownDescription: "Match ruleset identifier",
 				Computed:            true,
 			},
 
