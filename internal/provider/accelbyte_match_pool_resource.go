@@ -269,7 +269,12 @@ func (r *AccelByteMatchPoolResource) Create(ctx context.Context, req resource.Cr
 
 	// Reflect new pool from API into our model
 
-	updateFromApiMatchPool(ctx, &data, pool)
+	updateDiags, err := updateFromApiMatchPool(ctx, &data, pool)
+	resp.Diagnostics.Append(updateDiags...)
+	if err != nil {
+		resp.Diagnostics.AddError("Error when updating match pool model according to AccelByte API response", fmt.Sprintf("Unable to process API response for match pool '%s' in namespace '%s' into model, got error: %s", readInput.Pool, readInput.Namespace, err))
+		return
+	}
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -309,7 +314,12 @@ func (r *AccelByteMatchPoolResource) Read(ctx context.Context, req resource.Read
 		}
 	}
 
-	updateFromApiMatchPool(ctx, &data, pool)
+	updateDiags, err := updateFromApiMatchPool(ctx, &data, pool)
+	resp.Diagnostics.Append(updateDiags...)
+	if err != nil {
+		resp.Diagnostics.AddError("Error when updating match pool model according to AccelByte API response", fmt.Sprintf("Unable to process API response for match pool '%s' in namespace '%s' into model, got error: %s", input.Pool, input.Namespace, err))
+		return
+	}
 
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log
@@ -365,7 +375,12 @@ func (r *AccelByteMatchPoolResource) Update(ctx context.Context, req resource.Up
 
 	time.Sleep(CACHE_INVALIDATION_DELAY_SECONDS * time.Second)
 
-	updateFromApiMatchPool(ctx, &data, apiMatchPool)
+	updateDiags, err := updateFromApiMatchPool(ctx, &data, apiMatchPool)
+	resp.Diagnostics.Append(updateDiags...)
+	if err != nil {
+		resp.Diagnostics.AddError("Error when updating match pool model according to AccelByte API response", fmt.Sprintf("Unable to process API response for match pool '%s' in namespace '%s' into model, got error: %s", input.Pool, input.Namespace, err))
+		return
+	}
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

@@ -383,7 +383,12 @@ func (r *AccelByteSessionTemplateResource) Create(ctx context.Context, req resou
 		return
 	}
 
-	updateFromApiSessionTemplate(ctx, &data, configurationTemplate)
+	updateDiags, err := updateFromApiSessionTemplate(ctx, &data, configurationTemplate)
+	resp.Diagnostics.Append(updateDiags...)
+	if err != nil {
+		resp.Diagnostics.AddError("Error when updating session template model according to AccelByte API response", fmt.Sprintf("Unable to process API response for session template '%s' in namespace '%s' into model, got error: %s", input.Body.Name, input.Namespace, err))
+		return
+	}
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -426,7 +431,12 @@ func (r *AccelByteSessionTemplateResource) Read(ctx context.Context, req resourc
 		"configTemplate": configTemplate,
 	})
 
-	updateFromApiSessionTemplate(ctx, &data, configTemplate)
+	updateDiags, err := updateFromApiSessionTemplate(ctx, &data, configTemplate)
+	resp.Diagnostics.Append(updateDiags...)
+	if err != nil {
+		resp.Diagnostics.AddError("Error when updating session template model according to AccelByte API response", fmt.Sprintf("Unable to process API response for session template '%s' in namespace '%s' into model, got error: %s", input.Name, input.Namespace, err))
+		return
+	}
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -477,7 +487,12 @@ func (r *AccelByteSessionTemplateResource) Update(ctx context.Context, req resou
 		}
 	}
 
-	updateFromApiSessionTemplate(ctx, &data, apiSessionTemplate)
+	updateDiags, err := updateFromApiSessionTemplate(ctx, &data, apiSessionTemplate)
+	resp.Diagnostics.Append(updateDiags...)
+	if err != nil {
+		resp.Diagnostics.AddError("Error when updating session template model according to AccelByte API response", fmt.Sprintf("Unable to process API response for session template '%s' in namespace '%s' into model, got error: %s", input.Name, input.Namespace, err))
+		return
+	}
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

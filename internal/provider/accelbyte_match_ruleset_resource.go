@@ -158,7 +158,12 @@ func (r *AccelByteMatchRuleSetResource) Create(ctx context.Context, req resource
 		return
 	}
 
-	updateFromApiMatchRuleSet(ctx, &data, matchRuleSet)
+	updateDiags, err := updateFromApiMatchRuleSet(ctx, &data, matchRuleSet)
+	resp.Diagnostics.Append(updateDiags...)
+	if err != nil {
+		resp.Diagnostics.AddError("Error when updating match ruleset model according to AccelByte API response", fmt.Sprintf("Unable to process API response for ruleset '%s' in namespace '%s' into model, got error: %s", readInput.Ruleset, readInput.Namespace, err))
+		return
+	}
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -205,7 +210,12 @@ func (r *AccelByteMatchRuleSetResource) Read(ctx context.Context, req resource.R
 		"matchRuleSet": matchRuleSet,
 	})
 
-	updateFromApiMatchRuleSet(ctx, &data, matchRuleSet)
+	updateDiags, err := updateFromApiMatchRuleSet(ctx, &data, matchRuleSet)
+	resp.Diagnostics.Append(updateDiags...)
+	if err != nil {
+		resp.Diagnostics.AddError("Error when updating match ruleset model according to AccelByte API response", fmt.Sprintf("Unable to process API response for ruleset '%s' in namespace '%s' into model, got error: %s", input.Ruleset, input.Namespace, err))
+		return
+	}
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -256,7 +266,12 @@ func (r *AccelByteMatchRuleSetResource) Update(ctx context.Context, req resource
 		}
 	}
 
-	updateFromApiMatchRuleSet(ctx, &data, apiMatchRuleSet2)
+	updateDiags, err := updateFromApiMatchRuleSet(ctx, &data, apiMatchRuleSet2)
+	resp.Diagnostics.Append(updateDiags...)
+	if err != nil {
+		resp.Diagnostics.AddError("Error when updating match ruleset model according to AccelByte API response", fmt.Sprintf("Unable to process API response for ruleset '%s' in namespace '%s' into model, got error: %s", input.Ruleset, input.Namespace, err))
+		return
+	}
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

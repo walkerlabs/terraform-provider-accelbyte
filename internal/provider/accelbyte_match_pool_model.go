@@ -78,7 +78,7 @@ func listValueFromEvenIfNil(ctx context.Context, elementType attr.Type, elements
 
 // Used by Create, Read and Update operations on Match Pools
 // This copies data from the AccelByte API `pool` to the TF state `data`
-func updateFromApiMatchPool(ctx context.Context, data *AccelByteMatchPoolModel, pool *match2clientmodels.APIMatchPool) diag.Diagnostics {
+func updateFromApiMatchPool(ctx context.Context, data *AccelByteMatchPoolModel, pool *match2clientmodels.APIMatchPool) (diag.Diagnostics, error) {
 
 	var diags diag.Diagnostics = nil
 
@@ -151,7 +151,7 @@ func updateFromApiMatchPool(ctx context.Context, data *AccelByteMatchPoolModel, 
 	data.CrossplayEnabled = types.BoolValue(!pool.CrossplayDisabled)
 	data.PlatformGroupEnabled = types.BoolValue(pool.PlatformGroupEnabled)
 
-	return diags
+	return diags, nil
 }
 
 // Used by Create/Update operations on Match Pools
