@@ -46,6 +46,7 @@ type AccelByteProviderModel struct {
 
 type AccelByteProviderClients struct {
 	Match2PoolsService                  *match2.MatchPoolsService
+	RuleSetsService                     *match2.RuleSetsService
 	SessionConfigurationTemplateService *session.ConfigurationTemplateService
 }
 
@@ -275,6 +276,11 @@ func (p *AccelByteProvider) Configure(ctx context.Context, req provider.Configur
 		TokenRepository: tokenRepository,
 	}
 
+	ruleSetsService := &match2.RuleSetsService{
+		Client:          factory.NewMatch2Client(&configRepository),
+		TokenRepository: tokenRepository,
+	}
+
 	sessionConfigurationTemplateService := &session.ConfigurationTemplateService{
 		Client:          factory.NewSessionClient(&configRepository),
 		TokenRepository: tokenRepository,
@@ -282,6 +288,7 @@ func (p *AccelByteProvider) Configure(ctx context.Context, req provider.Configur
 
 	clients := &AccelByteProviderClients{
 		Match2PoolsService:                  match2PoolsService,
+		RuleSetsService:                     ruleSetsService,
 		SessionConfigurationTemplateService: sessionConfigurationTemplateService,
 	}
 
@@ -292,6 +299,7 @@ func (p *AccelByteProvider) Configure(ctx context.Context, req provider.Configur
 func (p *AccelByteProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewAccelByteMatchPoolResource,
+		NewAccelByteMatchRuleSetResource,
 		NewAccelByteSessionTemplateResource,
 	}
 }
@@ -305,6 +313,7 @@ func (p *AccelByteProvider) EphemeralResources(ctx context.Context) []func() eph
 func (p *AccelByteProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		NewAccelByteMatchPoolDataSource,
+		NewAccelByteMatchRuleSetDataSource,
 		NewAccelByteSessionTemplateDataSource,
 	}
 }
