@@ -16,7 +16,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// AccelByteSessionTemplateModel is shared between AccelByteSessionTemplateDataSource and AccelByteSessionTemplateResource
+// AccelByteSessionTemplateModel is shared between AccelByteSessionTemplateDataSource and AccelByteSessionTemplateResource.
 type AccelByteSessionTemplateModel struct {
 	// Populated by user
 	Namespace types.String `tfsdk:"namespace"`
@@ -131,8 +131,8 @@ const (
 	AccelByteSessionTemplateDsSourceCustom AccelByteSessionTemplateDsSourceType = "custom"
 )
 
-// Used by Create, Read and Update operations on Session Templates
-// This copies data from the AccelByte API `configurationTemplate` to the TF state `data`
+// Used by Create, Read and Update operations on Session Templates.
+// This copies data from the AccelByte API `configurationTemplate` to the TF state `data`.
 func updateFromApiSessionTemplate(ctx context.Context, data *AccelByteSessionTemplateModel, configurationTemplate *sessionclientmodels.ApimodelsConfigurationTemplateResponse) (diag.Diagnostics, error) {
 
 	var diags diag.Diagnostics = nil
@@ -227,8 +227,8 @@ func updateFromApiSessionTemplate(ctx context.Context, data *AccelByteSessionTem
 	return diags, nil
 }
 
-// Used by Create/Update operations on Session Templates
-// This reads from the TF state `customSessionFunction` and returns an AccelByte API sub-object
+// Used by Create/Update operations on Session Templates.
+// This reads from the TF state `customSessionFunction` and returns an AccelByte API sub-object.
 func toModelsExtendConfiguration(ctx context.Context, customSessionFunction types.Object) (*sessionclientmodels.ModelsExtendConfiguration, diag.Diagnostics) {
 
 	var customSessionFunctionModel AccelByteSessionTemplateCustomSessionFunctionModel
@@ -263,8 +263,8 @@ func toModelsExtendConfiguration(ctx context.Context, customSessionFunction type
 	return grpcSessionConfig, diags
 }
 
-// Used by Create operations on Session Templates
-// This reads from the TF state `data` and returns an AccelByte API object
+// Used by Create operations on Session Templates.
+// This reads from the TF state `data` and returns an AccelByte API object.
 func toApiSessionTemplate(ctx context.Context, data AccelByteSessionTemplateModel) (*sessionclientmodels.ApimodelsCreateConfigurationTemplateRequest, diag.Diagnostics, error) {
 
 	var diags diag.Diagnostics = nil
@@ -378,8 +378,8 @@ func toApiSessionTemplate(ctx context.Context, data AccelByteSessionTemplateMode
 	}, diags, nil
 }
 
-// Used by Update operations on Session Templates
-// This reads from the TF state `data` and returns an AccelByte API object
+// Used by Update operations on Session Templates.
+// This reads from the TF state `data` and returns an AccelByte API object.
 func toApiSessionTemplateConfig(ctx context.Context, data AccelByteSessionTemplateModel) (*sessionclientmodels.ApimodelsUpdateConfigurationTemplateRequest, diag.Diagnostics, error) {
 
 	var diags diag.Diagnostics = nil

@@ -143,7 +143,7 @@ func (r *AccelByteMatchRuleSetResource) Create(ctx context.Context, req resource
 
 	err = r.client.CreateRuleSetShort(input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error when creating match ruleset via AccelByte API", fmt.Sprintf("Unable to create match ruleset '%s' in namespace '%s', got error: %s", input.Body.Name, input.Namespace, err))
+		resp.Diagnostics.AddError("Error when creating match ruleset via AccelByte API", fmt.Sprintf("Unable to create match ruleset '%s' in namespace '%s', got error: %s", *input.Body.Name, input.Namespace, err))
 		return
 	}
 

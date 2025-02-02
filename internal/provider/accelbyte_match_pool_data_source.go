@@ -201,7 +201,12 @@ func (d *AccelByteMatchPoolDataSource) Read(ctx context.Context, req datasource.
 		"pool":      pool,
 	})
 
-	updateFromApiMatchPool(ctx, &data, pool)
+	updateDiags, err := updateFromApiMatchPool(ctx, &data, pool)
+	resp.Diagnostics.Append(updateDiags...)
+	if err != nil {
+		resp.Diagnostics.AddError("Error when updating match pool model according to AccelByte API response", fmt.Sprintf("Unable to process API response for match pool '%s' in namespace '%s' into model, got error: %s", input.Pool, input.Namespace, err))
+		return
+	}
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

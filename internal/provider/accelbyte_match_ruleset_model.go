@@ -14,7 +14,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// AccelByteMatchRuleSetModel is shared between AccelByteMatchRuleSetDataSource and AccelByteMatchRuleSetResource
+// AccelByteMatchRuleSetModel is shared between AccelByteMatchRuleSetDataSource and AccelByteMatchRuleSetResource.
 type AccelByteMatchRuleSetModel struct {
 	// Populated by user
 	Namespace types.String `tfsdk:"namespace"`
@@ -30,9 +30,11 @@ type AccelByteMatchRuleSetModel struct {
 	Configuration types.String `tfsdk:"configuration"`
 }
 
-// Used by Create, Read and Update operations on Match Rulesets
-// This copies data from the AccelByte API `matchRuleSet` to the TF state `data`
-func updateFromApiMatchRuleSet(ctx context.Context, data *AccelByteMatchRuleSetModel, matchRuleSet *match2clientmodels.APIRuleSetPayload) (diag.Diagnostics, error) {
+// Used by Create, Read and Update operations on Match Rulesets.
+// This copies data from the AccelByte API `matchRuleSet` to the TF state `data`.
+//
+//nolint:unparam
+func updateFromApiMatchRuleSet(_ context.Context, data *AccelByteMatchRuleSetModel, matchRuleSet *match2clientmodels.APIRuleSetPayload) (diag.Diagnostics, error) {
 
 	var diags diag.Diagnostics = nil
 
@@ -48,9 +50,11 @@ func updateFromApiMatchRuleSet(ctx context.Context, data *AccelByteMatchRuleSetM
 	return diags, nil
 }
 
-// Used by Create/Update operations on Match Rulesets
-// This reads from the TF state `data` and returns an AccelByte API object
-func toApiMatchRuleSet(ctx context.Context, data AccelByteMatchRuleSetModel) (*match2clientmodels.APIRuleSetPayload, diag.Diagnostics, error) {
+// Used by Create/Update operations on Match Rulesets.
+// This reads from the TF state `data` and returns an AccelByte API object.
+//
+//nolint:unparam
+func toApiMatchRuleSet(_ context.Context, data AccelByteMatchRuleSetModel) (*match2clientmodels.APIRuleSetPayload, diag.Diagnostics, error) {
 
 	var diags diag.Diagnostics = nil
 

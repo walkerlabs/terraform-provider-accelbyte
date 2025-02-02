@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
-// AccelByteMatchPoolModel is shared between AccelByteMatchPoolDataSource and AccelByteMatchPoolResource
+// AccelByteMatchPoolModel is shared between AccelByteMatchPoolDataSource and AccelByteMatchPoolResource.
 type AccelByteMatchPoolModel struct {
 	// Populated by user
 	Namespace types.String `tfsdk:"namespace"`
@@ -61,8 +61,8 @@ type AccelByteMatchPoolMatchFunctionOverrideModel struct {
 	Validation      types.List   `tfsdk:"validation"`
 }
 
-// Replacement for types.ListValueFrom(), which guarantees to return a list object even
-//   if the input elements is an empty slice or nil
+// Replacement for types.ListValueFrom(), which guarantees to return a list object,
+// even if the input elements is an empty slice or nil.
 func listValueFromEvenIfNil(ctx context.Context, elementType attr.Type, elements any) (basetypes.ListValue, diag.Diagnostics) {
 	// The input elements are potentially an empty slice (which compares as nil) or nil
 	// These are wrapped in an interface, so to detect an empty slice / nil we need to inspect the inner type of the interface
@@ -76,8 +76,10 @@ func listValueFromEvenIfNil(ctx context.Context, elementType attr.Type, elements
 	}
 }
 
-// Used by Create, Read and Update operations on Match Pools
-// This copies data from the AccelByte API `pool` to the TF state `data`
+// Used by Create, Read and Update operations on Match Pools.
+// This copies data from the AccelByte API `pool` to the TF state `data`.
+//
+//nolint:unparam
 func updateFromApiMatchPool(ctx context.Context, data *AccelByteMatchPoolModel, pool *match2clientmodels.APIMatchPool) (diag.Diagnostics, error) {
 
 	var diags diag.Diagnostics = nil
@@ -154,8 +156,8 @@ func updateFromApiMatchPool(ctx context.Context, data *AccelByteMatchPoolModel, 
 	return diags, nil
 }
 
-// Used by Create/Update operations on Match Pools
-// This reads from the TF state `matchFunctionOverride` and returns an AccelByte API sub-object
+// Used by Create/Update operations on Match Pools.
+// This reads from the TF state `matchFunctionOverride` and returns an AccelByte API sub-object.
 func toApiMatchFunctionOverride(ctx context.Context, matchFunctionOverride types.Object) (*match2clientmodels.APIMatchFunctionOverride, diag.Diagnostics) {
 
 	var matchFunctionOverrideModel AccelByteMatchPoolMatchFunctionOverrideModel
@@ -179,8 +181,8 @@ func toApiMatchFunctionOverride(ctx context.Context, matchFunctionOverride types
 	return apiMatchFunctionOverride, diags
 }
 
-// Used by Create operations on Match Pools
-// This reads from the TF state `data` and returns an AccelByte API object
+// Used by Create operations on Match Pools.
+// This reads from the TF state `data` and returns an AccelByte API object.
 func toApiMatchPool(ctx context.Context, data AccelByteMatchPoolModel) (*match2clientmodels.APIMatchPool, diag.Diagnostics) {
 
 	var diags diag.Diagnostics = nil
@@ -222,8 +224,8 @@ func toApiMatchPool(ctx context.Context, data AccelByteMatchPoolModel) (*match2c
 	}, diags
 }
 
-// Used by Update operations on Match Pools
-// This reads from the TF state `data` and returns an AccelByte API object
+// Used by Update operations on Match Pools.
+// This reads from the TF state `data` and returns an AccelByte API object.
 func toApiMatchPoolConfig(ctx context.Context, data AccelByteMatchPoolModel) (*match2clientmodels.APIMatchPoolConfig, diag.Diagnostics) {
 
 	var diags diag.Diagnostics = nil

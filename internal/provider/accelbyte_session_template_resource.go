@@ -379,14 +379,14 @@ func (r *AccelByteSessionTemplateResource) Create(ctx context.Context, req resou
 
 	configurationTemplate, err := r.client.AdminCreateConfigurationTemplateV1Short(input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error when creating session template via AccelByte API", fmt.Sprintf("Unable to create session template '%s' in namespace '%s', got error: %s", input.Body.Name, input.Namespace, err))
+		resp.Diagnostics.AddError("Error when creating session template via AccelByte API", fmt.Sprintf("Unable to create session template '%s' in namespace '%s', got error: %s", *input.Body.Name, input.Namespace, err))
 		return
 	}
 
 	updateDiags, err := updateFromApiSessionTemplate(ctx, &data, configurationTemplate)
 	resp.Diagnostics.Append(updateDiags...)
 	if err != nil {
-		resp.Diagnostics.AddError("Error when updating session template model according to AccelByte API response", fmt.Sprintf("Unable to process API response for session template '%s' in namespace '%s' into model, got error: %s", input.Body.Name, input.Namespace, err))
+		resp.Diagnostics.AddError("Error when updating session template model according to AccelByte API response", fmt.Sprintf("Unable to process API response for session template '%s' in namespace '%s' into model, got error: %s", *input.Body.Name, input.Namespace, err))
 		return
 	}
 

@@ -32,7 +32,7 @@ var _ resource.Resource = &AccelByteMatchPoolResource{}
 var _ resource.ResourceWithImportState = &AccelByteMatchPoolResource{}
 
 const (
-	// Wait this many seconds after any write operation to the AB API, in the hope that cached results are flushed out by then
+	// Wait this many seconds after any write operation to the AB API, in the hope that cached results are flushed out by then.
 	CACHE_INVALIDATION_DELAY_SECONDS = 20
 )
 
@@ -243,7 +243,7 @@ func (r *AccelByteMatchPoolResource) Create(ctx context.Context, req resource.Cr
 
 	err := r.client.CreateMatchPoolShort(createInput)
 	if err != nil {
-		resp.Diagnostics.AddError("Error when creating match pool via AccelByte API", fmt.Sprintf("Unable to create match pool '%s' in namespace '%s', got error: %s", apiMatchPool.Name, createInput.Namespace, err))
+		resp.Diagnostics.AddError("Error when creating match pool via AccelByte API", fmt.Sprintf("Unable to create match pool '%s' in namespace '%s', got error: %s", *createInput.Body.Name, createInput.Namespace, err))
 		return
 	}
 
