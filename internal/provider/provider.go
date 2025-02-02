@@ -305,9 +305,7 @@ func (p *AccelByteProvider) Resources(ctx context.Context) []func() resource.Res
 }
 
 func (p *AccelByteProvider) EphemeralResources(ctx context.Context) []func() ephemeral.EphemeralResource {
-	return []func() ephemeral.EphemeralResource{
-		NewExampleEphemeralResource,
-	}
+	return []func() ephemeral.EphemeralResource{}
 }
 
 func (p *AccelByteProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
@@ -319,9 +317,7 @@ func (p *AccelByteProvider) DataSources(ctx context.Context) []func() datasource
 }
 
 func (p *AccelByteProvider) Functions(ctx context.Context) []func() function.Function {
-	return []func() function.Function{
-		NewExampleFunction,
-	}
+	return []func() function.Function{}
 }
 
 func New(version string) func() provider.Provider {
