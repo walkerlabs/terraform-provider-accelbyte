@@ -57,26 +57,29 @@ func (p *AccelByteProvider) Metadata(ctx context.Context, req provider.MetadataR
 
 func (p *AccelByteProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		MarkdownDescription: "The Terraform provider for AccelByte can be used to manage configuration within an [AccelByte](https://accelbyte.io) backend.\n\n" +
+			"This can be used both for Shared Cloud as well as for private clusters.\n\n" +
+			"For supporting documentation, see the [AccelByte Gaming Services (AGS) documentation](https://docs.accelbyte.io/gaming-services/services/) as well as the [AGS API Explorer](https://docs.accelbyte.io/api-explorer/).\n",
 		Attributes: map[string]schema.Attribute{
 			"base_url": schema.StringAttribute{
-				MarkdownDescription: "URL to AccelByte cluster, typically on the form 'https://<something>.accelbyte.io'",
+				MarkdownDescription: "URL to AccelByte cluster, typically on the form `https://<something>.accelbyte.io`.",
 				Optional:            true,
 			},
 			"iam_client_id": schema.StringAttribute{
-				MarkdownDescription: "IAM Client ID to use for authentication",
+				MarkdownDescription: "IAM Client ID to use for authentication. The IAM client's permissions will be ignored.",
 				Optional:            true,
 			},
 			"iam_client_secret": schema.StringAttribute{
-				MarkdownDescription: "IAM Client Secret to use for authentication",
+				MarkdownDescription: "IAM Client Secret to use for authentication.",
 				Optional:            true,
 				Sensitive:           true,
 			},
 			"admin_username": schema.StringAttribute{
-				MarkdownDescription: "Admin user email to use for authentication",
+				MarkdownDescription: "Admin user email to use for authentication. The user's permission will be used for authorization as well.",
 				Optional:            true,
 			},
 			"admin_password": schema.StringAttribute{
-				MarkdownDescription: "Admin user password to use for authentication",
+				MarkdownDescription: "Admin user password to use for authentication.",
 				Optional:            true,
 				Sensitive:           true,
 			},

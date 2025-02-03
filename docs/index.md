@@ -3,12 +3,18 @@
 page_title: "accelbyte Provider"
 subcategory: ""
 description: |-
-  
+  The Terraform provider for AccelByte can be used to manage configuration within an AccelByte https://accelbyte.io backend.
+  This can be used both for Shared Cloud as well as for private clusters.
+  For supporting documentation, see the AccelByte Gaming Services (AGS) documentation https://docs.accelbyte.io/gaming-services/services/ as well as the AGS API Explorer https://docs.accelbyte.io/api-explorer/.
 ---
 
 # accelbyte Provider
 
+The Terraform provider for AccelByte can be used to manage configuration within an [AccelByte](https://accelbyte.io) backend.
 
+This can be used both for Shared Cloud as well as for private clusters.
+
+For supporting documentation, see the [AccelByte Gaming Services (AGS) documentation](https://docs.accelbyte.io/gaming-services/services/) as well as the [AGS API Explorer](https://docs.accelbyte.io/api-explorer/).
 
 ## Example Usage
 
@@ -35,8 +41,8 @@ provider "accelbyte" {
 
 ### Optional
 
-- `admin_password` (String, Sensitive) Admin user password to use for authentication
-- `admin_username` (String) Admin user email to use for authentication
-- `base_url` (String) URL to AccelByte cluster, typically on the form 'https://<something>.accelbyte.io'
-- `iam_client_id` (String) IAM Client ID to use for authentication
-- `iam_client_secret` (String, Sensitive) IAM Client Secret to use for authentication
+- `admin_password` (String, Sensitive) Admin user password to use for authentication.
+- `admin_username` (String) Admin user email to use for authentication. The user's permission will be used for authorization as well.
+- `base_url` (String) URL to AccelByte cluster, typically on the form `https://<something>.accelbyte.io`.
+- `iam_client_id` (String) IAM Client ID to use for authentication. The IAM client's permissions will be ignored.
+- `iam_client_secret` (String, Sensitive) IAM Client Secret to use for authentication.
