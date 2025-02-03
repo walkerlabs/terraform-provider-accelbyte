@@ -49,7 +49,7 @@ func (r *AccelByteSessionTemplateResource) Metadata(ctx context.Context, req res
 func (r *AccelByteSessionTemplateResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "AccelByte Session Template resource",
+		MarkdownDescription: "This resource represents a [session template](https://docs.accelbyte.io/gaming-services/services/play/session/configure-session-templates/).",
 
 		Attributes: map[string]schema.Attribute{
 
