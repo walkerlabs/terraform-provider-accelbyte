@@ -3,12 +3,12 @@
 page_title: "accelbyte_match_ruleset Resource - accelbyte"
 subcategory: ""
 description: |-
-  AccelByte Match Ruleset resource
+  This resource represents a match ruleset https://docs.accelbyte.io/gaming-services/services/play/matchmaking/configuring-match-rulesets/.
 ---
 
 # accelbyte_match_ruleset (Resource)
 
-AccelByte Match Ruleset resource
+This resource represents a [match ruleset](https://docs.accelbyte.io/gaming-services/services/play/matchmaking/configuring-match-rulesets/).
 
 ## Example Usage
 

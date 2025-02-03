@@ -52,7 +52,7 @@ func (r *AccelByteMatchPoolResource) Metadata(ctx context.Context, req resource.
 func (r *AccelByteMatchPoolResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "AccelByte Match Pool resource",
+		MarkdownDescription: "This resource represents a [match pool](https://docs.accelbyte.io/gaming-services/services/play/matchmaking/configuring-match-pools/).",
 
 		Attributes: map[string]schema.Attribute{
 

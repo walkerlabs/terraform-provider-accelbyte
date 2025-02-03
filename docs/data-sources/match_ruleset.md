@@ -3,12 +3,12 @@
 page_title: "accelbyte_match_ruleset Data Source - accelbyte"
 subcategory: ""
 description: |-
-  AccelByteMatchRuleSet data source
+  This data source represents a match ruleset https://docs.accelbyte.io/gaming-services/services/play/matchmaking/configuring-match-rulesets/.
 ---
 
 # accelbyte_match_ruleset (Data Source)
 
-AccelByteMatchRuleSet data source
+This data source represents a [match ruleset](https://docs.accelbyte.io/gaming-services/services/play/matchmaking/configuring-match-rulesets/).
 
 ## Example Usage
 

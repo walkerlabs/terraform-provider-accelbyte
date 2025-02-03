@@ -41,7 +41,7 @@ func (r *AccelByteMatchRuleSetResource) Metadata(ctx context.Context, req resour
 func (r *AccelByteMatchRuleSetResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "AccelByte Match Ruleset resource",
+		MarkdownDescription: "This resource represents a [match ruleset](https://docs.accelbyte.io/gaming-services/services/play/matchmaking/configuring-match-rulesets/).",
 
 		Attributes: map[string]schema.Attribute{
 

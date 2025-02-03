@@ -3,12 +3,12 @@
 page_title: "accelbyte_session_template Resource - accelbyte"
 subcategory: ""
 description: |-
-  AccelByte Session Template resource
+  This resource represents a session template https://docs.accelbyte.io/gaming-services/services/play/session/configure-session-templates/.
 ---
 
 # accelbyte_session_template (Resource)
 
-AccelByte Session Template resource
+This resource represents a [session template](https://docs.accelbyte.io/gaming-services/services/play/session/configure-session-templates/).
 
 ## Example Usage
 

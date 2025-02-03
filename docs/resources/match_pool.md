@@ -3,12 +3,12 @@
 page_title: "accelbyte_match_pool Resource - accelbyte"
 subcategory: ""
 description: |-
-  AccelByte Match Pool resource
+  This resource represents a match pool https://docs.accelbyte.io/gaming-services/services/play/matchmaking/configuring-match-pools/.
 ---
 
 # accelbyte_match_pool (Resource)
 
-AccelByte Match Pool resource
+This resource represents a [match pool](https://docs.accelbyte.io/gaming-services/services/play/matchmaking/configuring-match-pools/).
 
 ## Example Usage
 
