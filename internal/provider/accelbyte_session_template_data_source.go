@@ -42,18 +42,18 @@ func (d *AccelByteSessionTemplateDataSource) Schema(ctx context.Context, req dat
 			// Populated by user
 
 			"namespace": schema.StringAttribute{
-				MarkdownDescription: "Game Namespace which contains the session template",
+				MarkdownDescription: "Game Namespace which contains the session template. Uppercase characters, lowercase characters, or digits. Max 64 characters in length.",
 				Required:            true,
 			},
 			"name": schema.StringAttribute{
-				MarkdownDescription: "Name of session template",
+				MarkdownDescription: "Name of session template. All lowercase characters, max 48 characters in length.",
 				Required:            true,
 			},
 
 			// Computed during Read() operation
 
 			"id": schema.StringAttribute{
-				MarkdownDescription: "Session template identifier",
+				MarkdownDescription: "Session template identifier, on the format `{{namespace}}/{{name}}`.",
 				Computed:            true,
 			},
 
@@ -61,11 +61,11 @@ func (d *AccelByteSessionTemplateDataSource) Schema(ctx context.Context, req dat
 
 			// "General" screen - Main configuration
 			"min_players": schema.Int32Attribute{
-				MarkdownDescription: "",
+				MarkdownDescription: "The minimum number of players required on each team to start the match.",
 				Computed:            true,
 			},
 			"max_players": schema.Int32Attribute{
-				MarkdownDescription: "",
+				MarkdownDescription: "The maximum number of players in a session.",
 				Computed:            true,
 			},
 
@@ -121,15 +121,15 @@ func (d *AccelByteSessionTemplateDataSource) Schema(ctx context.Context, req dat
 
 			// "General" screen - Connection and Joinability
 			"invite_timeout": schema.Int32Attribute{
-				MarkdownDescription: "",
+				MarkdownDescription: "Timeout value when invited players will be removed unless they accept or join the invite.",
 				Computed:            true,
 			},
 			"inactive_timeout": schema.Int32Attribute{
-				MarkdownDescription: "",
+				MarkdownDescription: "Timeout value when inactive players will be removed from the session, based on disconnection event from the lobby.",
 				Computed:            true,
 			},
 			"leader_election_grace_period": schema.Int32Attribute{
-				MarkdownDescription: "",
+				MarkdownDescription: "This is only used for party sessions. When the leader disconnects, it will wait until the value is reached, the leader will be changed.",
 				Computed:            true,
 			},
 
@@ -185,35 +185,35 @@ func (d *AccelByteSessionTemplateDataSource) Schema(ctx context.Context, req dat
 
 			// "Additional" screen settings
 			"auto_join_session": schema.BoolAttribute{
-				MarkdownDescription: "",
+				MarkdownDescription: "Make the player auto-accept the session invitation and join the session directly.",
 				Computed:            true,
 			},
 			"chat_room": schema.BoolAttribute{
-				MarkdownDescription: "",
+				MarkdownDescription: "Provide a text-based chatroom for users to chat with each other.",
 				Computed:            true,
 			},
 			"secret_validation": schema.BoolAttribute{
-				MarkdownDescription: "",
+				MarkdownDescription: "Generate a secret key for player validation during connection. The secret key will be used to authenticate and validate the player connect and travel to the Dedicated Server (DS).",
 				Computed:            true,
 			},
 			"generate_code": schema.BoolAttribute{
-				MarkdownDescription: "",
+				MarkdownDescription: "Generate a code that can be used as a multiple-use, ticket for joining the session. The code will remain valid for the duration of the session.",
 				Computed:            true,
 			},
 			"immutable_session_storage": schema.BoolAttribute{
-				MarkdownDescription: "",
+				MarkdownDescription: "Prevent players from modifying the session storage.",
 				Computed:            true,
 			},
 			"manual_set_ready_for_ds": schema.BoolAttribute{
-				MarkdownDescription: "",
+				MarkdownDescription: "Require the DS to call a specific endpoint, signaling that the DS will be ready to accept client connections for the game session, before AGS will send players to the DS.",
 				Computed:            true,
 			},
 			"tied_teams_session_lifetime": schema.BoolAttribute{
-				MarkdownDescription: "",
+				MarkdownDescription: "Link the lifetime of any 'partyId' session within the 'teams' attribute to the game session. This exclusively applies when the 'partyId' within 'teams' is the game session.",
 				Computed:            true,
 			},
 			"auto_leave_session": schema.BoolAttribute{
-				MarkdownDescription: "",
+				MarkdownDescription: "Limit the player's active game session to always one. The player will leave the current game session when joining a new one. The Player Active Session Limit will be ignored when this config is enabled.",
 				Computed:            true,
 			},
 
