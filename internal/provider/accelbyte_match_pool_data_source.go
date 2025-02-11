@@ -42,18 +42,18 @@ func (d *AccelByteMatchPoolDataSource) Schema(ctx context.Context, req datasourc
 			// Populated by user
 
 			"namespace": schema.StringAttribute{
-				MarkdownDescription: "Game Namespace which contains the match pool",
+				MarkdownDescription: "Game Namespace which contains the match pool. Uppercase characters, lowercase characters, or digits. Max 64 characters in length.",
 				Required:            true,
 			},
 			"name": schema.StringAttribute{
-				MarkdownDescription: "Name of match pool",
+				MarkdownDescription: "Name of match pool. Uppercase characters, lowercase characters, or digits. Max 64 characters in length.",
 				Required:            true,
 			},
 
 			// Computed during Read() operation
 
 			"id": schema.StringAttribute{
-				MarkdownDescription: "Match pool identifier",
+				MarkdownDescription: "Match pool identifier, on the format `{{namespace}}/{{name}}`.",
 				Computed:            true,
 			},
 
@@ -61,66 +61,68 @@ func (d *AccelByteMatchPoolDataSource) Schema(ctx context.Context, req datasourc
 
 			// Basic information
 			"rule_set": schema.StringAttribute{
-				MarkdownDescription: "",
+				MarkdownDescription: "Match ruleset to use for this match pool. This defines the rules that will be used during matchmaking.",
 				Computed:            true,
 			},
 			"session_template": schema.StringAttribute{
-				MarkdownDescription: "",
+				MarkdownDescription: "Session template to usew for this match pool. This defines the characteristics of the session, such as joinability, what game server deploymewnt to use, and which regions it should deploy to.",
 				Computed:            true,
 			},
 			"ticket_expiration_seconds": schema.Int32Attribute{
-				MarkdownDescription: "",
+				MarkdownDescription: "Duration of a matchmaking request, in seconds. If matchmaking has not found a suitable match within this time, the matchmaking attempt will be aborted.",
 				Computed:            true,
 			},
 
 			// Best latency calculation method
 			"best_latency_calculation_method": schema.StringAttribute{
-				MarkdownDescription: "",
-				Computed:            true,
+				MarkdownDescription: "Latency calculation used during matchmaking:\n\n" +
+					"`Average` (Default): Matches players based on the average latency across all participants.\n" +
+					"`P95`: Matches players based on the 95th percentile latency, aiming to minimize the worst-case latency experienced by the majority of players.",
+				Computed: true,
 			},
 
 			// Backfill
 			"auto_accept_backfill_proposal": schema.BoolAttribute{
-				MarkdownDescription: "",
+				MarkdownDescription: "If set, allow AGS Matchmaking to handle backfill requests.",
 				Computed:            true,
 			},
 			"backfill_proposal_expiration_seconds": schema.Int32Attribute{
-				MarkdownDescription: "",
+				MarkdownDescription: "Duration of a matchmaking proposal ticket, in seconds.",
 				Computed:            true,
 			},
 			"backfill_ticket_expiration_seconds": schema.Int32Attribute{
-				MarkdownDescription: "",
+				MarkdownDescription: "Duration of a backfill ticket, in seconds.",
 				Computed:            true,
 			},
 
 			// Customization
 			"match_function": schema.StringAttribute{
-				MarkdownDescription: "",
+				MarkdownDescription: "Name of an Extend Override app. If set to `default`, no app will be called. Otherwise, this app will be invoked for [all overridable calls during matchmaking](https://docs.accelbyte.io/gaming-services/services/play/matchmaking/overridable-matchmakingv2/).",
 				Computed:            true,
 			},
 			"match_function_override": schema.SingleNestedAttribute{
 				Attributes: map[string]schema.Attribute{
 					"backfill_matches": schema.StringAttribute{
-						MarkdownDescription: "",
+						MarkdownDescription: "Name of an Extend Override app. If set, this app will have the `BackfillMatches` RPC called to override implementation of matching tickets from queue that handles backfill tickets. This is called before the `MakeMatches` RPC is called.",
 						Computed:            true,
 					},
 					"enrichment": schema.ListAttribute{
+						MarkdownDescription: "Ordered list Extend Override apps. If set, these apps will have the `EnrichTicket` RPC called to add additional values to ticket attributes, e.g., insert values from external sources. This method is called after the ticket is hydrated.",
 						ElementType:         types.StringType,
-						MarkdownDescription: "",
 						Computed:            true,
 					},
 					"make_matches": schema.StringAttribute{
-						MarkdownDescription: "",
+						MarkdownDescription: "Name of an Extend Override app. If set, this app will have the `MakeMatches` RPC called to override the implementation of matching tickets from the queue for new tickets. This method is called periodically and takes tickets in a queue as an input. The interval can be configurable with the default time: minimum of 10 seconds and maximum of 30 seconds.",
 						Computed:            true,
 					},
 					"stat_codes": schema.ListAttribute{
+						MarkdownDescription: "Ordered list of Extend Override apps. If set, these apps will have the `GetStatCodes` RPC called to override or extend the list of codes and values added to player attributes in the match ticket. This method is called when the match ticket is hydrated.",
 						ElementType:         types.StringType,
-						MarkdownDescription: "",
 						Computed:            true,
 					},
 					"validation": schema.ListAttribute{
+						MarkdownDescription: "Ordered list of Extend Override apps. If set, these apps will have the `ValidateTicket` RPC called to override or extend the logic for validating a ticket, e.g., checking if the ruleset is valid or not. This method is called after the ticket is hydrated and enriched.",
 						ElementType:         types.StringType,
-						MarkdownDescription: "",
 						Computed:            true,
 					},
 				},

@@ -48,14 +48,14 @@ func (r *AccelByteMatchRuleSetResource) Schema(ctx context.Context, req resource
 			// Must be set by user; the ID is derived from these
 
 			"namespace": schema.StringAttribute{
-				MarkdownDescription: "Game Namespace which contains the match ruleset",
+				MarkdownDescription: "Game Namespace which contains the match ruleset. Uppercase characters, lowercase characters, or digits. Max 64 characters in length.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"name": schema.StringAttribute{
-				MarkdownDescription: "Name of match ruleset",
+				MarkdownDescription: "Name of match ruleset. Uppercase characters, lowercase characters, or digits. Max 64 characters in length.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -65,7 +65,7 @@ func (r *AccelByteMatchRuleSetResource) Schema(ctx context.Context, req resource
 			// Computed during Read() operation
 
 			"id": schema.StringAttribute{
-				MarkdownDescription: "Match ruleset identifier",
+				MarkdownDescription: "Match ruleset identifier, on the format `{{namespace}}/{{name}}`.",
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
@@ -75,7 +75,7 @@ func (r *AccelByteMatchRuleSetResource) Schema(ctx context.Context, req resource
 			// Can be set by user during resource creation; will otherwise get defaults from schema
 
 			"enable_custom_match_function": schema.BoolAttribute{
-				MarkdownDescription: "",
+				MarkdownDescription: "If set to `false`, then the `configuration` block's JSON content will be validated to contain only settings relevant to the default AGS Matchmaking logic. If set to `true`, the `configuration` block will only be validated to be valid JSON. Setting to `true` allows you to pass your own settings to your own custom matchmaking functions.",
 				Optional:            true,
 				Computed:            true,
 				Default:             booldefault.StaticBool(false),
@@ -84,7 +84,7 @@ func (r *AccelByteMatchRuleSetResource) Schema(ctx context.Context, req resource
 			// Must be set by user during resource creation
 
 			"configuration": schema.StringAttribute{
-				MarkdownDescription: "",
+				MarkdownDescription: "Matchmaking ruleset configuration in JSON format. See [ruleset docs](https://docs.accelbyte.io/gaming-services/services/play/matchmaking/configuring-match-rulesets/#overview).",
 				Required:            true,
 			},
 		},
