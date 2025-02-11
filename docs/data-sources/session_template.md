@@ -24,44 +24,51 @@ data "accelbyte_session_template" "test" {
 
 ### Required
 
-- `name` (String) Name of session template
-- `namespace` (String) Game Namespace which contains the session template
+- `name` (String) Name of session template. All lowercase characters, max 48 characters in length.
+- `namespace` (String) Game Namespace which contains the session template. Uppercase characters, lowercase characters, or digits. Max 64 characters in length.
 
 ### Optional
 
-- `ams_server` (Attributes) (see [below for nested schema](#nestedatt--ams_server))
-- `custom_server` (Attributes) (see [below for nested schema](#nestedatt--custom_server))
-- `custom_session_function` (Attributes) (see [below for nested schema](#nestedatt--custom_session_function))
-- `p2p_server` (Attributes) (see [below for nested schema](#nestedatt--p2p_server))
+- `ams_server` (Attributes) Sessions are hosted by dedicated servers on AMS. Cannot be used in conjunction with `p2p_server` or `custom_server`. (see [below for nested schema](#nestedatt--ams_server))
+- `custom_server` (Attributes) Sessions are hosted by [a custom mechanism of your choosing](https://docs.accelbyte.io/gaming-services/services/extend/override/session-dsm-function/). Cannot be used in conjunction with `p2p_server` or `ams_server`. (see [below for nested schema](#nestedatt--custom_server))
+- `custom_session_function` (Attributes) Customization points for the session manager. See [docs](https://docs.accelbyte.io/gaming-services/services/extend/override/getting-started-with-session-manager-customization/). (see [below for nested schema](#nestedatt--custom_session_function))
+- `p2p_server` (Attributes) Sessions are peer-hosted. Cannot be used in conjunction with `ams_server` or `custom_server`. (see [below for nested schema](#nestedatt--p2p_server))
 
 ### Read-Only
 
-- `auto_join_session` (Boolean)
-- `auto_leave_session` (Boolean)
-- `chat_room` (Boolean)
+- `auto_join_session` (Boolean) Make the player auto-accept the session invitation and join the session directly.
+- `auto_leave_session` (Boolean) Limit the player's active game session to always one. The player will leave the current game session when joining a new one. The Player Active Session Limit will be ignored when this config is enabled.
+- `chat_room` (Boolean) Provide a text-based chatroom for users to chat with each other.
 - `custom_attributes` (String)
-- `generate_code` (Boolean)
-- `id` (String) Session template identifier
-- `immutable_session_storage` (Boolean)
-- `inactive_timeout` (Number)
-- `invite_timeout` (Number)
-- `joinability` (String)
-- `leader_election_grace_period` (Number)
-- `manual_set_ready_for_ds` (Boolean)
-- `max_active_sessions` (Number)
-- `max_players` (Number)
-- `min_players` (Number)
-- `secret_validation` (Boolean)
-- `tied_teams_session_lifetime` (Boolean)
+- `generate_code` (Boolean) Generate a code that can be used as a multiple-use, ticket for joining the session. The code will remain valid for the duration of the session.
+- `id` (String) Session template identifier, on the format `{{namespace}}/{{name}}`.
+- `immutable_session_storage` (Boolean) Prevent players from modifying the session storage.
+- `inactive_timeout` (Number) Timeout value when inactive players will be removed from the session, based on disconnection event from the lobby.
+- `invite_timeout` (Number) Timeout value when invited players will be removed unless they accept or join the invite.
+- `joinability` (String) Control which players can join a session, and through which methods:
+
+`OPEN`: Any player can join, either via the session browser or via matchmaking.
+`FRIENDS_OF_LEADER`: Only friends of the leader of the session can join, either via the session browser or via matchmaking.
+`FRIENDS_OF_FRIENDS`: Only friends of friends of the leader of the session can join, either via the session browser or via matchmaking.
+`FRIENDS_OF_MEMBERS`: Friends of any session member can join, either via the session browser or via matchmaking.
+`INVITE_ONLY`: Only players who have received an invitation to join the session through either matchmaking, a player in the session requesting to add another player, or a join code that is automatically generated for the session, can join.
+`CLOSED`: Players cannot initiate joining a session. They can still be purposefully added as part of matchmaking, or by the game client that requested the creation of the session.
+- `leader_election_grace_period` (Number) This is only used for party sessions. When the leader disconnects, it will wait until the value is reached, the leader will be changed.
+- `manual_set_ready_for_ds` (Boolean) Require the DS to call a specific endpoint, signaling that the DS will be ready to accept client connections for the game session, before AGS will send players to the DS.
+- `max_active_sessions` (Number) The maximum number of sessions of this session template type that a single player can be part of at the same time. -1 = unlimited, >1 = limit value in effect.
+- `max_players` (Number) The maximum number of players in a session.
+- `min_players` (Number) The minimum number of players required on each team to start the match.
+- `secret_validation` (Boolean) Generate a secret key for player validation during connection. The secret key will be used to authenticate and validate the player connect and travel to the Dedicated Server (DS).
+- `tied_teams_session_lifetime` (Boolean) Link the lifetime of any 'partyId' session within the 'teams' attribute to the game session. This exclusively applies when the 'partyId' within 'teams' is the game session.
 
 <a id="nestedatt--ams_server"></a>
 ### Nested Schema for `ams_server`
 
 Read-Only:
 
-- `fallback_claim_keys` (List of String)
-- `preferred_claim_keys` (List of String)
-- `requested_regions` (List of String)
+- `fallback_claim_keys` (List of String) The client version has priority over these these claim keys. If a DS cannot be found using either `preferred_claim_keys` or the client version, a third match attempt will be done using these claim keys.
+- `preferred_claim_keys` (List of String) These claim keys have priority over the client version. If a DS can be found using these claim keys, the client version will be ignored.
+- `requested_regions` (List of String) List of regions that will be considered when finding a suitable DS.
 
 
 <a id="nestedatt--custom_server"></a>
@@ -69,8 +76,8 @@ Read-Only:
 
 Optional:
 
-- `custom_url` (String)
-- `extend_app` (String)
+- `custom_url` (String) Custom URL to a HTTP server. This HTTP server will be called for [creating and terminating game sessions](https://docs.accelbyte.io/gaming-services/services/extend/override/session-dsm-function/#contract-functions). Cannot be used in conjunction with `extend_app`.
+- `extend_app` (String) Name of an Extend Override app. This app will be called for [creating and terminating game sessions](https://docs.accelbyte.io/gaming-services/services/extend/override/session-dsm-function/#contract-functions). Cannot be used in conjunction with `custom_url`.
 
 
 <a id="nestedatt--custom_session_function"></a>
@@ -78,14 +85,14 @@ Optional:
 
 Read-Only:
 
-- `custom_url` (String)
-- `extend_app` (String)
-- `on_party_created` (Boolean)
-- `on_party_deleted` (Boolean)
-- `on_party_updated` (Boolean)
-- `on_session_created` (Boolean)
-- `on_session_deleted` (Boolean)
-- `on_session_updated` (Boolean)
+- `custom_url` (String) Custom URL to a HTTP server. This HTTP server will be called for the events you have enabled. Cannot be used in conjunction with `extend_app`.
+- `extend_app` (String) Name of an Extend Override app. This app will be called for the events you have enabled. Cannot be used in conjunction with `custom_url`.
+- `on_party_created` (Boolean) If set to true, the `OnPartyCreated` callback will be invoked when the party session is created.
+- `on_party_deleted` (Boolean) If set to true, the `OnPartyDeleted` callback will be invoked when the party session is marked as deleted.
+- `on_party_updated` (Boolean) If set to true, the `OnPartyUpdated` callback will be invoked whenever there are any modification/updates made to the party session.
+- `on_session_created` (Boolean) If set to true, the `OnSessionCreated` callback will be invoked when the game session is created.
+- `on_session_deleted` (Boolean) If set to true, the `OnSessionDeleted` callback will be invoked when the game session is marked as deleted.
+- `on_session_updated` (Boolean) If set to true, the `OnSessionUpdated` callback will be invoked whenever there are any modification/updates made to the game session.
 
 
 <a id="nestedatt--p2p_server"></a>

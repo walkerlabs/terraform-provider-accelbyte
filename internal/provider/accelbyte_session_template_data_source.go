@@ -71,47 +71,54 @@ func (d *AccelByteSessionTemplateDataSource) Schema(ctx context.Context, req dat
 
 			// "General" screen - Connection and Joinability
 			"joinability": schema.StringAttribute{
-				MarkdownDescription: "",
-				Computed:            true,
+				MarkdownDescription: "Control which players can join a session, and through which methods:\n\n" +
+					"`OPEN`: Any player can join, either via the session browser or via matchmaking.\n" +
+					"`FRIENDS_OF_LEADER`: Only friends of the leader of the session can join, either via the session browser or via matchmaking.\n" +
+					"`FRIENDS_OF_FRIENDS`: Only friends of friends of the leader of the session can join, either via the session browser or via matchmaking.\n" +
+					"`FRIENDS_OF_MEMBERS`: Friends of any session member can join, either via the session browser or via matchmaking.\n" +
+					"`INVITE_ONLY`: Only players who have received an invitation to join the session through either matchmaking, a player in the session requesting to add another player, or a join code that is automatically generated for the session, can join.\n" +
+					"`CLOSED`: Players cannot initiate joining a session. They can still be purposefully added as part of matchmaking, or by the game client that requested the creation of the session.",
+				Computed: true,
 			},
 
 			// "General" screen - Main configuration
 			"max_active_sessions": schema.Int32Attribute{
-				MarkdownDescription: "",
+				MarkdownDescription: "The maximum number of sessions of this session template type that a single player can be part of at the same time. -1 = unlimited, >1 = limit value in effect.",
 				Computed:            true,
 			},
 			"custom_session_function": schema.SingleNestedAttribute{
+				MarkdownDescription: "Customization points for the session manager. See [docs](https://docs.accelbyte.io/gaming-services/services/extend/override/getting-started-with-session-manager-customization/).",
 				Attributes: map[string]schema.Attribute{
 					"on_session_created": schema.BoolAttribute{
-						MarkdownDescription: "",
+						MarkdownDescription: "If set to true, the `OnSessionCreated` callback will be invoked when the game session is created.",
 						Computed:            true,
 					},
 					"on_session_updated": schema.BoolAttribute{
-						MarkdownDescription: "",
+						MarkdownDescription: "If set to true, the `OnSessionUpdated` callback will be invoked whenever there are any modification/updates made to the game session.",
 						Computed:            true,
 					},
 					"on_session_deleted": schema.BoolAttribute{
-						MarkdownDescription: "",
+						MarkdownDescription: "If set to true, the `OnSessionDeleted` callback will be invoked when the game session is marked as deleted.",
 						Computed:            true,
 					},
 					"on_party_created": schema.BoolAttribute{
-						MarkdownDescription: "",
+						MarkdownDescription: "If set to true, the `OnPartyCreated` callback will be invoked when the party session is created.",
 						Computed:            true,
 					},
 					"on_party_updated": schema.BoolAttribute{
-						MarkdownDescription: "",
+						MarkdownDescription: "If set to true, the `OnPartyUpdated` callback will be invoked whenever there are any modification/updates made to the party session.",
 						Computed:            true,
 					},
 					"on_party_deleted": schema.BoolAttribute{
-						MarkdownDescription: "",
+						MarkdownDescription: "If set to true, the `OnPartyDeleted` callback will be invoked when the party session is marked as deleted.",
 						Computed:            true,
 					},
 					"custom_url": schema.StringAttribute{
-						MarkdownDescription: "",
+						MarkdownDescription: "Custom URL to a HTTP server. This HTTP server will be called for the events you have enabled. Cannot be used in conjunction with `extend_app`.",
 						Computed:            true,
 					},
 					"extend_app": schema.StringAttribute{
-						MarkdownDescription: "",
+						MarkdownDescription: "Name of an Extend Override app. This app will be called for the events you have enabled. Cannot be used in conjunction with `custom_url`.",
 						Computed:            true,
 					},
 				},
@@ -137,27 +144,29 @@ func (d *AccelByteSessionTemplateDataSource) Schema(ctx context.Context, req dat
 
 			// Peer-to-Peer server
 			"p2p_server": schema.SingleNestedAttribute{
-				Attributes: map[string]schema.Attribute{},
-				Optional:   true,
-				Computed:   true,
+				MarkdownDescription: "Sessions are peer-hosted. Cannot be used in conjunction with `ams_server` or `custom_server`.",
+				Attributes:          map[string]schema.Attribute{},
+				Optional:            true,
+				Computed:            true,
 			},
 
 			// AMS server
 			"ams_server": schema.SingleNestedAttribute{
+				MarkdownDescription: "Sessions are hosted by dedicated servers on AMS. Cannot be used in conjunction with `p2p_server` or `custom_server`.",
 				Attributes: map[string]schema.Attribute{
 					"requested_regions": schema.ListAttribute{
+						MarkdownDescription: "List of regions that will be considered when finding a suitable DS.",
 						ElementType:         types.StringType,
-						MarkdownDescription: "",
 						Computed:            true,
 					},
 					"preferred_claim_keys": schema.ListAttribute{
+						MarkdownDescription: "These claim keys have priority over the client version. If a DS can be found using these claim keys, the client version will be ignored.",
 						ElementType:         types.StringType,
-						MarkdownDescription: "",
 						Computed:            true,
 					},
 					"fallback_claim_keys": schema.ListAttribute{
+						MarkdownDescription: "The client version has priority over these these claim keys. If a DS cannot be found using either `preferred_claim_keys` or the client version, a third match attempt will be done using these claim keys.",
 						ElementType:         types.StringType,
-						MarkdownDescription: "",
 						Computed:            true,
 					},
 				},
@@ -167,14 +176,15 @@ func (d *AccelByteSessionTemplateDataSource) Schema(ctx context.Context, req dat
 
 			// Custom server
 			"custom_server": schema.SingleNestedAttribute{
+				MarkdownDescription: "Sessions are hosted by [a custom mechanism of your choosing](https://docs.accelbyte.io/gaming-services/services/extend/override/session-dsm-function/). Cannot be used in conjunction with `p2p_server` or `ams_server`.",
 				Attributes: map[string]schema.Attribute{
 					"custom_url": schema.StringAttribute{
-						MarkdownDescription: "",
+						MarkdownDescription: "Custom URL to a HTTP server. This HTTP server will be called for [creating and terminating game sessions](https://docs.accelbyte.io/gaming-services/services/extend/override/session-dsm-function/#contract-functions). Cannot be used in conjunction with `extend_app`.",
 						Optional:            true,
 						Computed:            true,
 					},
 					"extend_app": schema.StringAttribute{
-						MarkdownDescription: "",
+						MarkdownDescription: "Name of an Extend Override app. This app will be called for [creating and terminating game sessions](https://docs.accelbyte.io/gaming-services/services/extend/override/session-dsm-function/#contract-functions). Cannot be used in conjunction with `custom_url`.",
 						Optional:            true,
 						Computed:            true,
 					},
